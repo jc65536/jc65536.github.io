@@ -20,7 +20,7 @@
         border: 1px solid #c6c6c6;
         transition: 0.2s;
     }
-    
+
     .borderless-dropdown.active {
         border: 1px solid #3992e5;
         transition: 0.2s;
@@ -84,31 +84,25 @@
         right: calc(1.5rem / 2);
     }
 
-    @keyframes fade-in {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
+    ::-webkit-scrollbar {
+        width: 0.25rem;
     }
 
-    @keyframes fade-out {
-        from {
-            opacity: 1;
-        }
+    ::-webkit-scrollbar-track {
+        background: rgba(221, 221, 221, 0.4);
+        border-radius: 0.5rem;
+    }
 
-        to {
-            opacity: 0;
-        }
+    ::-webkit-scrollbar-thumb {
+        background: #c6c6c6;
+        border-radius: 0.5rem;
     }
 </style>
 
 <body>
     <div id="uwu" class="borderless-dropdown" tabindex=0>
         <span class="selected-label"></span>
-        <img src="../res/arrow-black-small.svg" class="dropdown-arrow" />
+        <img src="arrow-black-small.svg" class="dropdown-arrow" />
         <div class="options-list-container">
             <ul></ul>
         </div>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Mulish">
+
+<style>
+    .borderless-dropdown {
+        display: flex;
+        position: relative;
+        align-items: center;
+        border-radius: 0.35rem;
+        background-color: transparent;
+        color: #383838;
+        font-family: "Mulish";
+        font-size: 0.875rem;
+        height: 1.5rem;
+        width: max-content;
+        margin: 0;
+        padding-right: 1.5rem;
+        cursor: pointer;
+        border: 1px solid #c6c6c6;
+        transition: 0.2s;
+    }
+    
+    .borderless-dropdown.active {
+        border: 1px solid #3992e5;
+        transition: 0.2s;
+    }
+
+    .borderless-dropdown .selected-label {
+        padding-left: 0.5rem;
+    }
+
+    .borderless-dropdown .options-list-container {
+        position: absolute;
+        background-color: #fff;
+        margin: 0;
+        bottom: 0;
+        transform: translateY(calc(100% + 0.25rem));
+        padding: 0.75rem 0.75rem 0.75rem 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0.25rem 0.25rem 1.25rem rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        visibility: hidden;
+        height: 0;
+        opacity: 0;
+        transition: 0.2s;
+    }
+
+    .borderless-dropdown.active .options-list-container {
+        visibility: visible;
+        height: 10rem;
+        opacity: 1;
+        transition: 0.2s;
+    }
+
+    .borderless-dropdown ul {
+        font-size: 0.75rem;
+        list-style-type: none;
+        min-width: max-content;
+        max-height: 100%;
+        z-index: 99;
+        color: #898989;
+        overflow-y: scroll;
+        margin: 0;
+        padding: 0;
+        padding-right: 1rem;
+    }
+
+    .borderless-dropdown li {
+        line-height: 1rem;
+        font-weight: 300;
+        padding: 0.125rem 0;
+    }
+
+    .borderless-dropdown .selected {
+        font-weight: bold;
+        color: #383838;
+    }
+
+    .dropdown-arrow {
+        position: absolute;
+        pointer-events: none;
+        transform: translateX(50%) rotate(90deg);
+        right: calc(1.5rem / 2);
+    }
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes fade-out {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+        }
+    }
+</style>
+
+<body>
+    <div id="uwu" class="borderless-dropdown" tabindex=0>
+        <span class="selected-label"></span>
+        <img src="../res/arrow-black-small.svg" class="dropdown-arrow" />
+        <div class="options-list-container">
+            <ul></ul>
+        </div>
+    </div>
+    <p>
+        Twas brillig and the slithy toves <br />
+        Did gyre and gimble in the wabe <br />
+        All mimsy were the borogoves <br />
+        And the mome raths outgrabe <br />
+        Beware the bandernatch my son <br />
+        The claws that catch the jaws that bite <br />
+        Beware the jubjub bird <br />
+        And shun the frumious bandersnatch
+    </p>
+</body>
+
+<script>
+    {
+        const id = "uwu";
+        const options = ["Twas brillig and", "The slithy toves", "Did gyre and gimble", "In the wabe", "All mimsy were the",
+            "Borogoves and the", "Mome raths outgrabe", "Beware the bandersnatch", "The jaws that bite",
+            "The claws that catch", "Beware the jubjub bird", "And shun the frumious", "Bandersnatch",
+            "He took his vorpal", "Sword in hand", "Long time the", "Manxome foe he sought", "So rested he by",
+            "The tumtum tree and", "Stood awhile in thought"];
+        const placeholder = "Select option";
+        let selected_option = 0;    // Starts out as a number but the JS assigns it to a DOM node on the first run
+        let dropdown = document.getElementById(id);
+        let selected_label = document.querySelector(`#${id} .selected-label`);
+        let options_list = document.querySelector(`#${id} ul`);
+        let options_list_container = document.querySelector(`#${id} .options-list-container`);
+        if (selected_option < 0) {
+            selected_label.textContent = placeholder;
+        } else {
+            selected_label.textContent = options[selected_option];
+        }
+        for (const i in options) {
+            const option = document.createElement("li");
+            const option_text = options[i];
+            option.textContent = option_text;
+            options_list.appendChild(option);
+            if (i == selected_option) {
+                option.classList.add("selected");
+                selected_option = option;
+            }
+            option.addEventListener("click", function () {
+                selected_option.classList.remove("selected");
+                this.classList.add("selected");
+                selected_option = this;
+                selected_label.textContent = option_text;
+                dropdown.classList.remove("active");
+            });
+        }
+        dropdown.addEventListener("click", function (e) {
+            let isClickInside = options_list_container.contains(e.target);
+            if (!isClickInside) {   // if is click on the menu button
+                dropdown.classList.toggle("active");
+            }
+        });
+        document.addEventListener("click", function (e) {
+            let isClickInside = dropdown.contains(e.target);
+            if (!isClickInside) {
+                dropdown.classList.remove("active");
+            }
+        });
+    }
+</script>

@@ -4,20 +4,18 @@
 
 <style>
     .borderless-dropdown {
-        display: flex;
         position: relative;
+        display: flex;
         align-items: center;
-        border-radius: 0.35rem;
-        background-color: transparent;
-        color: #383838;
-        font-family: "Mulish";
-        font-size: 0.875rem;
-        height: 1.5rem;
-        width: max-content;
-        margin: 0;
-        padding-right: 1.5rem;
-        cursor: pointer;
+        height: 1rem;
+        width: 9rem;    /* Safe to adjust to your needs */
+        background-color: #fff;
+        padding: 0.5rem 1rem 0.5rem 0;
         border: 1px solid #c6c6c6;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-family: "Mulish";
+        color: #383838;
         transition: 0.2s;
     }
 
@@ -27,22 +25,33 @@
     }
 
     .borderless-dropdown .selected-label {
-        padding-left: 0.5rem;
+        flex-grow: 99;
+        padding: 0 1rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
     }
 
     .borderless-dropdown .options-list-container {
         position: absolute;
-        background-color: #fff;
-        margin: 0;
+        box-sizing: border-box;
         bottom: 0;
-        transform: translateY(calc(100% + 0.25rem));
-        padding: 0.75rem 0.75rem 0.75rem 1rem;
+        transform: translateY(calc(100% + 1px));    /* + 1px to account for the menu's border */
+        width: 100%;    /* To make sides flush with the menu button */
+        background-color: #fff;
+        padding: 0.75rem 0.5rem 0.75rem 1rem;
         border-radius: 0.5rem;
         box-shadow: 0.25rem 0.25rem 1.25rem rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        z-index: 99;
+        cursor: default;
+
+        /* For transition purposes; hidden by default */
         visibility: hidden;
         height: 0;
         opacity: 0;
+        overflow: hidden;
         transition: 0.2s;
     }
 
@@ -54,22 +63,23 @@
     }
 
     .borderless-dropdown ul {
-        font-size: 0.75rem;
         list-style-type: none;
-        min-width: max-content;
-        max-height: 100%;
-        z-index: 99;
+        font-size: 0.75rem;
         color: #898989;
-        overflow-y: scroll;
+        height: 100%;
         margin: 0;
-        padding: 0;
-        padding-right: 1rem;
+        padding: 0 1rem 0 0;
+        overflow-y: auto;
     }
 
     .borderless-dropdown li {
         line-height: 1rem;
         font-weight: 300;
-        padding: 0.125rem 0;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        padding: 0.25rem 0;
+        cursor: pointer;
     }
 
     .borderless-dropdown .selected {
@@ -78,10 +88,7 @@
     }
 
     .dropdown-arrow {
-        position: absolute;
-        pointer-events: none;
-        transform: translateX(50%) rotate(90deg);
-        right: calc(1.5rem / 2);
+        transform: rotate(90deg);
     }
 
     ::-webkit-scrollbar {
@@ -122,18 +129,15 @@
 <script>
     {
         const id = "uwu";
-        const options = ["Twas brillig and", "The slithy toves", "Did gyre and gimble", "In the wabe", "All mimsy were the",
-            "Borogoves and the", "Mome raths outgrabe", "Beware the jabberwock", "The jaws that bite",
-            "The claws that catch", "Beware the jubjub bird", "And shun the frumious", "Bandersnatch",
-            "He took his vorpal", "Sword in hand", "Long time the", "Manxome foe he sought", "So rested he by",
-            "The tumtum tree and", "Stood awhile in thought"];
-        const placeholder = "Select option";
-        let selected_option = 0;    // Starts out as a number but the JS assigns it to a DOM node on the first run
-        let dropdown = document.getElementById(id);
-        let selected_label = document.querySelector(`#${id} .selected-label`);
-        let options_list = document.querySelector(`#${id} ul`);
-        let options_list_container = document.querySelector(`#${id} .options-list-container`);
-        if (selected_option < 0) {
+        const options = ["Spring 2020", "Winter 2020", "Fall 2019", "Summer 2019", "Spring 2019", "Winter 2019", "Fall 2018"];
+        const placeholder = "Sort by";
+        const selected_option_index = -1;    // Starts out as a number but the JS assigns it to a DOM node on the first run
+        let selected_option = null;
+        const dropdown = document.getElementById(id);
+        const selected_label = document.querySelector(`#${id} .selected-label`);
+        const options_list = document.querySelector(`#${id} ul`);
+        const options_list_container = document.querySelector(`#${id} .options-list-container`);
+        if (selected_option_index < 0) {
             selected_label.textContent = placeholder;
         } else {
             selected_label.textContent = options[selected_option];
@@ -143,12 +147,12 @@
             const option_text = options[i];
             option.textContent = option_text;
             options_list.appendChild(option);
-            if (i == selected_option) {
+            if (i == selected_option_index) {
                 option.classList.add("selected");
                 selected_option = option;
             }
             option.addEventListener("click", function () {
-                selected_option.classList.remove("selected");
+                selected_option?.classList.remove("selected");
                 this.classList.add("selected");
                 selected_option = this;
                 selected_label.textContent = option_text;

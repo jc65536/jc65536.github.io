@@ -3,241 +3,244 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Mulish">
 
 <style>
-    .new-dropdown {
-        position: relative;
-        display: flex;
-        align-items: center;
-        box-sizing: content-box;
-        height: 1rem;
-        width: 9rem;    /* Safe to adjust to your needs */
-        background-color: #fff;
-        padding: 0.5rem 1rem 0.5rem 0;
-        border: 1px solid #c6c6c6;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-family: "Mulish";
-        color: #383838;
-        transition: 0.2s;
-    }
+  .new-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    box-sizing: content-box;
+    height: 1rem;
+    width: 9rem;
+    /* Safe to adjust to your needs */
+    background-color: #fff;
+    padding: 0.5rem 1rem 0.5rem 0;
+    border: 1px solid #c6c6c6;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-family: "Mulish";
+    color: #383838;
+    transition: 0.2s;
+  }
 
-    .new-dropdown.active {
-        border: 1px solid #3992e5;
-        transition: 0.2s;
-    }
+  .new-dropdown.active {
+    border: 1px solid #3992e5;
+    transition: 0.2s;
+  }
 
-    .new-dropdown .selected-label {
-        flex-grow: 99;
-        padding: 0 1rem;
-        font-weight: 600;
-        font-size: 0.875rem;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
+  .new-dropdown .selected-label {
+    flex-grow: 99;
+    padding: 0 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
 
-    .new-dropdown .list-container {
-        position: absolute;
-        bottom: 0;
-        box-sizing: border-box;
-        transform: translateY(calc(100% + 1px));    /* + 1px to account for the menu's border */
-        max-height: 10rem;
-        width: 100%;    /* To make sides flush with the menu button */
-        background-color: #fff;
-        padding: 0 0.5rem 0 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0.25rem 0.25rem 1.25rem rgba(0, 0, 0, 0.1);
-        z-index: 99;
-        cursor: default;
+  .new-dropdown .list-container {
+    position: absolute;
+    bottom: 0;
+    box-sizing: border-box;
+    transform: translateY(calc(100% + 1px));
+    /* + 1px to account for the menu's border */
+    max-height: 10rem;
+    width: 100%;
+    /* To make sides flush with the menu button */
+    background-color: #fff;
+    padding: 0 0.5rem 0 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0.25rem 0.25rem 1.25rem rgba(0, 0, 0, 0.1);
+    z-index: 99;
+    cursor: default;
 
-        /* For transition purposes; the container is hidden by default */
-        visibility: hidden;
-        opacity: 0;
-        overflow: hidden;
-        transition: 0.2s ease-out;
-    }
+    /* For transition purposes; the container is hidden by default */
+    visibility: hidden;
+    opacity: 0;
+    overflow: hidden;
+    transition: 0.2s ease-out;
+  }
 
-    .new-dropdown.active .list-container {
-        visibility: visible;
-        opacity: 1;
-        transition: 0.2s ease-out;
-    }
+  .new-dropdown.active .list-container {
+    visibility: visible;
+    opacity: 1;
+    transition: 0.2s ease-out;
+  }
 
-    .new-dropdown .list-inner-container {
-        padding: 0.75rem 0;
-    }
+  .new-dropdown .list-inner-container {
+    padding: 0.75rem 0;
+  }
 
-    .new-dropdown ul {
-        list-style-type: none;
-        max-height: 8.5rem;
-        font-size: 0.75rem;
-        color: #898989;
-        margin: 0;
-        padding: 0 1rem 0 0;
-        overflow-y: auto;
-    }
+  .new-dropdown ul {
+    list-style-type: none;
+    max-height: 8.5rem;
+    font-size: 0.75rem;
+    color: #898989;
+    margin: 0;
+    padding: 0 1rem 0 0;
+    overflow-y: auto;
+  }
 
-    .new-dropdown li {
-        line-height: 1rem;
-        font-weight: 300;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-        padding: 0.25rem 0;
-        cursor: pointer;
-    }
+  .new-dropdown li {
+    line-height: 1rem;
+    font-weight: 300;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0.25rem 0;
+    cursor: pointer;
+  }
 
-    .new-dropdown .selected {
-        font-weight: bold;
-        color: #383838;
-    }
+  .new-dropdown .selected {
+    font-weight: bold;
+    color: #383838;
+  }
 
-    .dropdown-arrow {
-        transform: rotate(90deg);
-    }
+  .dropdown-arrow {
+    transform: rotate(90deg);
+  }
 
-    ::-webkit-scrollbar {
-        width: 0.25rem;
-    }
+  ::-webkit-scrollbar {
+    width: 0.25rem;
+  }
 
-    ::-webkit-scrollbar-track {
-        background: rgba(221, 221, 221, 0.4);
-        border-radius: 0.5rem;
-    }
+  ::-webkit-scrollbar-track {
+    background: rgba(221, 221, 221, 0.4);
+    border-radius: 0.5rem;
+  }
 
-    ::-webkit-scrollbar-thumb {
-        background: #c6c6c6;
-        border-radius: 0.5rem;
-    }
+  ::-webkit-scrollbar-thumb {
+    background: #c6c6c6;
+    border-radius: 0.5rem;
+  }
 </style>
 
 <body>
-    <div id="uwu" class="new-dropdown" tabindex=0>
-        <span class="selected-label"></span>
-        <img src="../res/arrow-black-small.svg" class="dropdown-arrow" />
-        <div class="list-container">
-            <!-- I need list-inner-container to hold the top/bottom padding. I can't use list-container
+  <div id="uwu" class="new-dropdown" tabindex=0>
+    <span class="selected-label"></span>
+    <img src="../res/arrow-black-small.svg" class="dropdown-arrow" />
+    <div class="list-container">
+      <!-- I need list-inner-container to hold the top/bottom padding. I can't use list-container
             because the transition will get messed up, and I can't use the ul because the scrollbar
             won't receive any padding. -->
-            <div class="list-inner-container">
-                <ul></ul>
-            </div>
-        </div>
+      <div class="list-inner-container">
+        <ul></ul>
+      </div>
     </div>
-    <p>
-        Twas brillig and the slithy toves <br />
-        Did gyre and gimble in the wabe <br />
-        All mimsy were the borogoves <br />
-        And the mome raths outgrabe <br />
-        Beware the jabberwock my son <br />
-        The claws that catch the jaws that bite <br />
-        Beware the jubjub bird <br />
-        And shun the frumious bandersnatch
-    </p>
+  </div>
+  <p>
+    Twas brillig and the slithy toves <br />
+    Did gyre and gimble in the wabe <br />
+    All mimsy were the borogoves <br />
+    And the mome raths outgrabe <br />
+    Beware the jabberwock my son <br />
+    The claws that catch the jaws that bite <br />
+    Beware the jubjub bird <br />
+    And shun the frumious bandersnatch
+  </p>
 </body>
 
 <script>
-    function collapse(element) {
-        // get the height of the element's inner content, regardless of its actual size
-        const sectionHeight = element.scrollHeight;
-        
-        // temporarily disable all css transitions
-        const elementTransition = element.style.transition;
-        element.style.transition = "";
-        
-        // on the next frame (as soon as the previous style change has taken effect),
-        // explicitly set the element's height to its current pixel height, so we 
-        // aren't transitioning out of 'auto'
-        requestAnimationFrame(function() {
-            element.style.height = sectionHeight + "px";
-            element.style.transition = elementTransition;
-            
-            // on the next frame (as soon as the previous style change has taken effect),
-            // have the element transition to height: 0
-            requestAnimationFrame(function() {
-                element.style.height = 0;
-            });
-        });
+  function collapse(element) {
+    // get the height of the element's inner content, regardless of its actual size
+    const sectionHeight = element.scrollHeight;
+
+    // temporarily disable all css transitions
+    const elementTransition = element.style.transition;
+    element.style.transition = "";
+
+    // on the next frame (as soon as the previous style change has taken effect),
+    // explicitly set the element's height to its current pixel height, so we 
+    // aren't transitioning out of 'auto'
+    requestAnimationFrame(function () {
+      element.style.height = sectionHeight + "px";
+      element.style.transition = elementTransition;
+
+      // on the next frame (as soon as the previous style change has taken effect),
+      // have the element transition to height: 0
+      requestAnimationFrame(function () {
+        element.style.height = 0;
+      });
+    });
+  }
+
+  function expand(element) {
+    // get the height of the element's inner content, regardless of its actual size
+    const sectionHeight = element.scrollHeight;
+
+    // have the element transition to the height of its inner content
+    element.style.height = sectionHeight + "px";
+
+    // when the next css transition finishes (which should be the one we just triggered)
+    element.addEventListener("transitionend", function (e) {
+      // remove this event listener so it only gets triggered once
+      element.removeEventListener("transitionend", arguments.callee);
+
+      // remove "height" from the element's inline styles, so it can return to its initial value
+      element.style.height = null;
+    });
+  }
+
+  {
+    // Anything within double curly braces are substituted by Django
+    const id = "uwu";
+    const options = ["A", "Quick", "Brown fox", "Jumped over the lazy dog", "Uwu", "Owo", "Fresco", "Piglet"];
+    const placeholder = "Select option";
+    const width = 9;
+    const selected_option_index = -1;    // Starts out as a number but the JS assigns it to a DOM node on the first run
+    const dropdown = document.getElementById(id);
+    const selected_label = document.querySelector(`#${id} .selected-label`);
+    const list = document.querySelector(`#${id} ul`);
+    const list_container = document.querySelector(`#${id} .list-container`);
+
+    let selected_option;
+
+    list_container.style.height = 0;
+
+    if (selected_option_index < 0) {
+      selected_label.textContent = placeholder;
+    } else {
+      selected_label.textContent = options[selected_option_index];
     }
 
-    function expand(element) {
-        // get the height of the element's inner content, regardless of its actual size
-        const sectionHeight = element.scrollHeight;
-        
-        // have the element transition to the height of its inner content
-        element.style.height = sectionHeight + "px";
-
-        // when the next css transition finishes (which should be the one we just triggered)
-        element.addEventListener("transitionend", function(e) {
-            // remove this event listener so it only gets triggered once
-            element.removeEventListener("transitionend", arguments.callee);
-            
-            // remove "height" from the element's inline styles, so it can return to its initial value
-            element.style.height = null;
-        });
+    if (width > 0) {
+      dropdown.style.width = width + "rem";
     }
 
-    {
-        // Anything within double curly braces are substituted by Django
-        const id = "uwu";
-        const options = ["A", "Quick", "Brown fox", "Jumped over the lazy dog", "Uwu", "Owo", "Fresco", "Piglet"];
-        const placeholder = "Select option";
-        const width = 9;
-        const selected_option_index = -1;    // Starts out as a number but the JS assigns it to a DOM node on the first run
-        const dropdown = document.getElementById(id);
-        const selected_label = document.querySelector(`#${id} .selected-label`);
-        const list = document.querySelector(`#${id} ul`);
-        const list_container = document.querySelector(`#${id} .list-container`);
+    for (const i in options) {
+      const option = document.createElement("li");
+      const option_text = options[i];
+      option.textContent = option_text;
+      list.appendChild(option);
+      if (i == selected_option_index) {
+        option.classList.add("selected");
+        selected_option = option;
+      }
+      option.addEventListener("click", function () {
+        selected_option?.classList.remove("selected");  // Short circuits if selected_option is null
+        this.classList.add("selected");
+        selected_option = this;
+        selected_label.textContent = option_text;
+        dropdown.classList.remove("active");
+        collapse(list_container);
+      });
+    }
 
-        let selected_option;
-
-        list_container.style.height = 0;
-
-        if (selected_option_index < 0) {
-            selected_label.textContent = placeholder;
+    dropdown.addEventListener("click", function (e) {
+      if (!list_container.contains(e.target)) {   // if it's a click on the menu button
+        if (dropdown.classList.contains("active")) {
+          dropdown.classList.remove("active");
+          collapse(list_container);
         } else {
-            selected_label.textContent = options[selected_option_index];
+          dropdown.classList.add("active");
+          expand(list_container);
         }
+      }
+    });
 
-        if (width > 0) {
-            dropdown.style.width = width + "rem";
-        }
-
-        for (const i in options) {
-            const option = document.createElement("li");
-            const option_text = options[i];
-            option.textContent = option_text;
-            list.appendChild(option);
-            if (i == selected_option_index) {
-                option.classList.add("selected");
-                selected_option = option;
-            }
-            option.addEventListener("click", function() {
-                selected_option?.classList.remove("selected");  // Short circuits if selected_option is null
-                this.classList.add("selected");
-                selected_option = this;
-                selected_label.textContent = option_text;
-                dropdown.classList.remove("active");
-                collapse(list_container);
-            });
-        }
-
-        dropdown.addEventListener("click", function(e) {
-            if (!list_container.contains(e.target)) {   // if it's a click on the menu button
-                if (dropdown.classList.contains("active")) {
-                    dropdown.classList.remove("active");
-                    collapse(list_container);
-                } else {
-                    dropdown.classList.add("active");
-                    expand(list_container);
-                }
-            }
-        });
-
-        document.addEventListener("click", function(e) {
-            if (!dropdown.contains(e.target)) {
-                dropdown.classList.remove("active");
-                collapse(list_container);
-            }
-        });
-    }
+    document.addEventListener("click", function (e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove("active");
+        collapse(list_container);
+      }
+    });
+  }
 </script>

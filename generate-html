@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Insert nav bars
+pages=("index.html" "projects.html")
+for i in ${pages[@]}; do
+    sed -e '/<!--NAV-->/{r components/nav.html' -e '; d}' "src/$i" > "output/$i"
+done

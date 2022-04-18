@@ -1,4 +1,4 @@
-#content {
+.content {
     max-width: 60rem;
     margin: auto;
 }
@@ -6,4 +6,8 @@
 #profile-photo {
     width: 8rem;
     float: right;
+}
+
+nav a + a {
+    margin-left: 4%;
 }

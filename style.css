@@ -8,6 +8,11 @@
     float: right;
 }
 
-nav a + a {
+.horizontal-link-list a + a {
     margin-left: 4%;
+}
+
+.project-screenshot {
+    max-width: 100%;
+    max-height: 45rem;
 }

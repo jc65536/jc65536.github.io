@@ -1,16 +1,5 @@
 #!/bin/bash
 
-components=(nav)
-
-insert_component() {
-    begin_tag="<!--begin $1-->"
-    end_tag="<!--end $1-->"
-    sed -e "/$begin_tag/,/$end_tag/ { /$begin_tag/ { r components/$1.html"\
-        -e"; b }; /$end_tag/!d }" -i "$2"
-}
-
-for i in *.html; do
-    for c in ${components[@]}; do
-        insert_component $c $i
-    done
+for i in $(find src -type f); do
+    util/insert-components < "$i" > $(basename "$i")
 done

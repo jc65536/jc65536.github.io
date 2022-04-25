@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>jcfp.site | Projects</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  {include nav.html}
+  <div class="content">
+    <h1>My Projects</h1>
+    <ul>
+      <li><a href="#rendeyou">RendeYou</a></li>
+      <li><a href="#trainer">TRAINER</a></li>
+      <li><a href="#cooking-assistant">Cooking Assistant</a></li>
+    </ul>
+
+    {include project.html with}
+      {id=rendeyou}
+      {name=RendeYou}
+      {links=
+        <a href="https://github.com/bliutech/RendeYou">GitHub repository</a>
+        <a href="https://rendeyou.bliu.tech/">Hosted app</a>}
+      {description=
+        RendeYou is a MERN stack web app that lets users share and coordinate
+        events with their friends.}
+      {made_with=Express, MongoDB, React}
+      {image=res/screenshot-rendeyou.png}
+    {endwith}
+
+    {include project.html with}
+      {id=trainer}
+      {name=TRAINER}
+      {links=
+        <a href="https://github.com/Pranav-Chati/CincyHacks">GitHub repository</a>
+        <a href="https://devpost.com/software/trainer-n2hqw4">Devpost entry</a>}
+      {description=
+        TRAINER is an exercise assistant that uses the TensorFlow OpenPose AI
+        model to count your workout reps.}
+      {made_with=React Native, Expo, TensorFlow}
+      {image=res/screenshot-trainer.png}
+    {endwith}
+
+    {include project.html with}
+      {id=cooking-assistant}
+      {name=Cooking Assistant}
+      {links=
+        <a href="https://github.com/MLH-Fellowship/ssw-meta-orientation">GitHub repository</a>
+        <a href="https://devpost.com/software/cooking-assistant">Devpost entry</a>}
+      {description=
+        Flip though recipes pages on your Android phone with your voice while your
+        hands are busy cooking!}
+      {made_with=Kotlin}
+      {image=res/screenshot-cooking-assistant.png}
+    {endwith}
+  </div>
+</body>
+
+</html>

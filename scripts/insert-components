@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+import tempfile
+from typing import Callable
+
+include_pattern = re.compile("{include (\S+)}")
+include_with_pattern = re.compile("{include (\S+) with}")
+sub_pattern = re.compile("{(\**)([^=]+)=")
+
+def print_file(path: str, func: Callable[[str], str] = lambda x: x):
+    with open(path) as file:
+        return map(func, file)
+
+def insert_components(file):
+    state = 0
+    subs = {}
+
+    def sub_all(line: str):
+        for key, value in subs.items():
+            line = line.replace(f"{{{key}}}", value.strip())
+        return line
+
+    for line in file:
+        if match := include_pattern.search(line):
+            with open(f"templates/{match.group(1)}") as file:
+                for line in insert_components(file):
+                    yield line
+            continue
+        if state == 0 and (match := include_with_pattern.search(line)):
+            component = match.group(1)
+            state = 1
+        if state == 1 and "{endwith}" in line:
+            with open(f"templates/{component}") as file:
+                for line in file:
+                    sub_lines = sub_all(line).splitlines(keepends=True)
+                    for sub_line in insert_components(sub_lines):
+                        yield sub_line
+            subs.clear()
+            state = 0
+            continue
+        if state == 1 and (match := sub_pattern.search(line)):
+            close_tag = match.group(1) + "}"
+            key = match.group(2)
+            subs[key] = ""
+            line = line[match.end():]
+            state = 2
+        if state == 2:
+            if (close_index := line.find(close_tag)) != -1:
+                line = line[:close_index]
+                state = 1
+            subs[key] += line.strip() + "\n"
+        if state == 0:
+            yield line
+
+for line in insert_components(sys.stdin):
+    sys.stdout.write(line)

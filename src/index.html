@@ -1,17 +1,7 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-  <meta charset="utf-8">
-  <title>Jason Cheng's Favorite Personal Site</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-  {include nav.html}
-  <div class="content">
-    <h1>Welcome to Jason's site</h1>
-
+{include page.html with}
+  {title=Jason Cheng's Favorite Personal Site}
+  {page_title=Welcome to Jason's Site}
+  {*content=
     <img src="res/profile-photo.jpg" id="profile-photo">
 
     <p>Hi, my name is Pinran Cheng（程品然）, but I go by Jason. Nice to meet you!</p>
@@ -43,7 +33,5 @@
       <li>Reddit: <a href="https://www.reddit.com/user/tumtumtree7">u/tumtumtree7</a></li>
       <li><a href="https://www.facebook.com/jason.cheng.50767984/">Facebook profile</a></li>
     </ul>
-  </div>
-</body>
-
-</html>
+  *}
+{endwith}

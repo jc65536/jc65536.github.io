@@ -1,5 +1,5 @@
 #!/bin/bash
 
 for i in $(find src -type f); do
-    scripts/insert-components < "$i" > $(basename "$i")
+    scripts/insert-components < "$i" > ${i#"src/"}
 done

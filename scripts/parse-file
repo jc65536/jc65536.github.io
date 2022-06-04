@@ -5,6 +5,9 @@ import sys
 from typing import Iterable
 from enum import Enum
 
+directive_pat = re.compile("{(.+?)}")
+text_open_pat = re.compile("{(\**)")
+
 
 class State(Enum):
     DEFAULT = 0
@@ -12,68 +15,64 @@ class State(Enum):
     TEXT = 2
 
 
-directive_pat = re.compile("{(.+?)}")
-text_open_pat = re.compile("{(\**)")
+def strip_list(lines: Iterable[str]):
+    return "".join(lines).strip().splitlines(keepends=True)
 
 
-def parse(file: Iterable[str]):
+def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
     state = State.DEFAULT
-    subs: dict[str, list[str] | str] = {}
-
-    def sub_all(file: Iterable[str]):
-        for line in file:
-            for key, value in subs.items():
-                line = line.replace(f"{{{key}}}", value)
-            yield from line.splitlines(keepends=True)
+    include_subs: dict[str, list[str]] = {}
 
     for line in file:
+        # Breaking this while implies that we've consumed the whole line
         while line:
             match state:
                 case State.INCLUDE_WITH:
                     if (match := directive_pat.search(line)) and match.group(1) == "endwith":
                         with open(f"templates/{filename}") as include_file:
-                            yield from parse(sub_all(include_file))
-                        subs.clear()
+                            yield from parse(include_file, include_subs)
+                        include_subs.clear()
                         line = line[match.end():]
                         state = State.DEFAULT
                     else:
-                        segments = line.split(":", 1)
-                        if len(segments) > 1:
+                        if len(segments := line.split(":", 1)) > 1:
                             key = segments[0]
                             line = line[len(key) + 1:]
                             key = key.strip()
                             if match := text_open_pat.search(line):
                                 text_close_pat = match.group(1) + "}"
-                                subs[key] = []
+                                include_subs[key] = []
                                 line = line[match.end():]
                                 state = State.TEXT
+                                continue
                             else:
-                                subs[key] = "".join(parse([line.strip()])).strip()
+                                include_subs[key] = strip_list(
+                                    parse([line.strip()], subs))
                         break
                 case State.TEXT:
-                    if (close_index := line.find(text_close_pat)) != -1:
-                        subs[key].append(line[:close_index].strip())
-                        subs[key] = "".join(parse((subs[key]))).strip()
-                        line = line[close_index + len(text_close_pat):]
+                    if len(segments := line.split(text_close_pat, 1)) > 1:
+                        include_subs[key].append(segments[0].strip())
+                        include_subs[key] = strip_list(
+                            parse(include_subs[key], subs))
+                        line = segments[1]
                         state = State.INCLUDE_WITH
                     else:
-                        subs[key].append(line.strip() + "\n")
+                        include_subs[key].append(line.strip() + "\n")
                         break
                 case State.DEFAULT:
                     if match := directive_pat.search(line):
-                        directive = match.group(1).split()
                         yield line[:match.start()]
-                        match directive:
+                        match match.group(1).split():
                             case ["include", filename]:
                                 with open(f"templates/{filename}") as include_file:
                                     yield from parse(include_file)
-                                line = line[match.end():]
                             case ["include", filename, "with"]:
                                 state = State.INCLUDE_WITH
-                                line = line[match.end():]
+                            case [key] if key in subs:
+                                yield from subs[key]
                             case _:
                                 yield match.group(0)
-                                line = line[match.end():]
+                        line = line[match.end():]
                     else:
                         yield line
                         break

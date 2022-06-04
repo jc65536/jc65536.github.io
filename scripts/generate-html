@@ -3,5 +3,5 @@
 src_dir="html-src"
 
 for i in $(find "$src_dir" -type f); do
-    scripts/insert-components < "$i" > ${i#"$src_dir/"}
+    scripts/parse-file "$i" > ${i#"$src_dir/"}
 done

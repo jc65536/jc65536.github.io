@@ -1,7 +1,7 @@
 {include page.html with}
-  {title=jcfp.site | Projects}
-  {page_title=My Projects}
-  {*content=
+  title: jcfp.site | Projects
+  page_title: My Projects
+  content: {*
     <ul>
       <li><a href="#rendeyou">RendeYou</a></li>
       <li><a href="#trainer">TRAINER</a></li>
@@ -9,48 +9,48 @@
     </ul>
 
     {include project.html with}
-      {id=rendeyou}
-      {name=RendeYou}
-      {links=
+      id: rendeyou
+      name: RendeYou
+      links: {
         <a href="https://github.com/bliutech/RendeYou">GitHub repository</a>
         <a href="https://rendeyou.bliu.tech/">Hosted app</a>
       }
-      {description=
+      description: {
         RendeYou is a MERN stack web app that lets users share and coordinate
         events with their friends.
       }
-      {made_with=Express, MongoDB, React}
-      {image=res/screenshot-rendeyou.png}
+      made_with: Express, MongoDB, React
+      image: res/screenshot-rendeyou.png
     {endwith}
 
     {include project.html with}
-      {id=trainer}
-      {name=TRAINER}
-      {links=
+      id: trainer
+      name: TRAINER
+      links: {
         <a href="https://github.com/Pranav-Chati/CincyHacks">GitHub repository</a>
         <a href="https://devpost.com/software/trainer-n2hqw4">Devpost entry</a>
       }
-      {description=
+      description: {
         TRAINER is an exercise assistant that uses the TensorFlow OpenPose AI
         model to count your workout reps.
       }
-      {made_with=React Native, Expo, TensorFlow}
-      {image=res/screenshot-trainer.png}
+      made_with: React Native, Expo, TensorFlow
+      image: res/screenshot-trainer.png
     {endwith}
 
     {include project.html with}
-      {id=cooking-assistant}
-      {name=Cooking Assistant}
-      {links=
+      id: cooking-assistant
+      name: Cooking Assistant
+      links: {
         <a href="https://github.com/MLH-Fellowship/ssw-meta-orientation">GitHub repository</a>
         <a href="https://devpost.com/software/cooking-assistant">Devpost entry</a>
       }
-      {description=
+      description: {
         Flip though recipes pages on your Android phone with your voice while
         your hands are busy cooking!
       }
-      {made_with=Kotlin}
-      {image=res/screenshot-cooking-assistant.png}
+      made_with: Kotlin
+      image: res/screenshot-cooking-assistant.png
     {endwith}
   *}
 {endwith}

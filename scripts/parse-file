@@ -5,7 +5,7 @@ import sys
 from typing import Iterable
 from enum import Enum
 
-directive_pat = re.compile("{(.+?)}")
+directive_pat = re.compile("{([^}]+)}")
 text_open_pat = re.compile("{(\**)")
 
 
@@ -36,10 +36,9 @@ def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
                         state = State.DEFAULT
                     else:
                         if len(segments := line.split(":", 1)) > 1:
-                            key = segments[0]
-                            line = line[len(key) + 1:]
-                            key = key.strip()
-                            if match := text_open_pat.search(line):
+                            key = segments[0].strip()
+                            line = segments[1].lstrip()
+                            if match := text_open_pat.match(line):
                                 text_close_pat = match.group(1) + "}"
                                 include_subs[key] = []
                                 line = line[match.end():]
@@ -47,7 +46,7 @@ def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
                                 continue
                             else:
                                 include_subs[key] = strip_list(
-                                    parse([line.strip()], subs))
+                                    parse([line.rstrip()], subs))
                         break
                 case State.TEXT:
                     if len(segments := line.split(text_close_pat, 1)) > 1:

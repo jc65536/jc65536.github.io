@@ -13,10 +13,6 @@ use utf8;
 use open qw( :std :encoding(UTF-8) );
 
 
-# Globals:
-my $tags_to_skip = qr!<(/?)(?:pre|code|kbd|script|math)[\s>]!;
-
-
 #### Process incoming text: #####################################
 my $old = $/;
 undef $/;               # slurp the whole file
@@ -43,7 +39,7 @@ sub SmartyPants {
         if ($cur_token->[0] eq "tag") {
             # Don't mess with quotes inside tags.
             $result .= $cur_token->[1];
-            if ($cur_token->[1] =~ m/$tags_to_skip/) {
+            if ($cur_token->[1] =~ m!<(/?)(?:pre|code|kbd|script|math)[\s>]!) {
                 $in_pre = defined $1 && $1 eq '/' ? 0 : 1;
             }
         } else {
@@ -56,20 +52,12 @@ sub SmartyPants {
 
                 if ($t eq q/'/) {
                     # Special case: single-character ' token
-                    if ($prev_token_last_char =~ m/\S/) {
-                        $t = "’";
-                    } else {
-                        $t = "‘";
-                    }
+                    $t = $prev_token_last_char =~ m/\S/ ? "’" : "‘";
                 } elsif ($t eq q/"/) {
                     # Special case: single-character " token
-                    if ($prev_token_last_char =~ m/\S/) {
-                        $t = "”";
-                    } else {
-                        $t = "“";
-                    }
+                    $t = $prev_token_last_char =~ m/\S/ ? "”" : "“";
                 } else {
-                    # Normal case:                  
+                    # Normal case:
                     $t = EducateQuotes($t);
                 }
 
@@ -168,28 +156,24 @@ sub EducateEllipses {
 
 sub ProcessEscapes {
     local $_ = shift;
-
     s! \\\\ !&#92;!gx;
     s! \\"  !&#34;!gx;
     s! \\'  !&#39;!gx;
     s! \\\. !&#46;!gx;
     s! \\-  !&#45;!gx;
     s! \\`  !&#96;!gx;
-
     return $_;
 }
 
 
 sub UndoEscapes {
     local $_ = shift;
-
     s!&#92;!\\!g;
     s!&#34;!"!g;
     s!&#39;!'!g;
     s!&#46;!.!g;
     s!&#45;!-!g;
     s!&#96;!`!g;
-
     return $_;
 }
 
@@ -211,7 +195,7 @@ sub _tokenize {
     my @tokens;
 
     my $depth = 6;
-    my $nested_tags = join('|', ('(?:<(?:[^<>]') x $depth) . (')*>)' x  $depth);
+    my $nested_tags = join('|', ('(?:<(?:[^<>]') x $depth) . (')*>)' x $depth);
     my $match = qr/(?s: <! ( -- .*? -- \s* )+ > ) |  # comment
                    (?s: <\? .*? \?> ) |              # processing instruction
                    $nested_tags/x;                   # nested tags

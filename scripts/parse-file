@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from difflib import Match
 import re
 import sys
 from typing import Iterable
@@ -29,24 +30,27 @@ def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
             match state:
                 case State.INCLUDE_WITH:
                     if (match := directive_pat.search(line)) and match.group(1) == "endwith":
+                        after_end = line[match.end():]
+                        line = line[:match.start()] # We'll still parse the content until {endwith}
+                        state = State.DEFAULT
+                    if len(segments := line.split(":", 1)) > 1:
+                        key = segments[0].strip()
+                        line = segments[1].lstrip()
+                        if match := text_open_pat.match(line):
+                            text_close_pat = match.group(1) + "}"
+                            include_subs[key] = []
+                            line = line[match.end():]
+                            state = State.TEXT
+                            continue
+                        else:
+                            include_subs[key] = strip_list(
+                                parse([line.rstrip()], subs))
+                    if state is not State.INCLUDE_WITH:
                         with open(f"templates/{filename}") as include_file:
                             yield from parse(include_file, include_subs)
                         include_subs.clear()
-                        line = line[match.end():]
-                        state = State.DEFAULT
+                        line = after_end
                     else:
-                        if len(segments := line.split(":", 1)) > 1:
-                            key = segments[0].strip()
-                            line = segments[1].lstrip()
-                            if match := text_open_pat.match(line):
-                                text_close_pat = match.group(1) + "}"
-                                include_subs[key] = []
-                                line = line[match.end():]
-                                state = State.TEXT
-                                continue
-                            else:
-                                include_subs[key] = strip_list(
-                                    parse([line.rstrip()], subs))
                         break
                 case State.TEXT:
                     if len(segments := line.split(text_close_pat, 1)) > 1:

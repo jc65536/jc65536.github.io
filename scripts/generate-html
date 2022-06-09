@@ -3,5 +3,7 @@
 src_dir="html-src"
 
 for i in $(find "$src_dir" -type f); do
-    scripts/parse-file "$i" > ${i#"$src_dir/"}
+    output=${i#"$src_dir/"}
+    mkdir -p "$(dirname "$output")"
+    scripts/parse-file "$i" | scripts/SmartyPants.pl > "$output"
 done

@@ -1,7 +1,56 @@
 {include page.html with}
-  title: jcfp.site | Arch Linux Guide
-  page_title: Arch Linux Guide
+  title: jcfp.site | Arch Linux
+  page_title: My Arch Linux Guide
   content: {
-    <img src="res/under-construction.gif">
+    <h2>Installation</h2>
+    <p>
+      When it comes to a comprehensive installation guide, nothing beats the
+      <a href="https://wiki.archlinux.org/title/Installation_guide">official installation guide.</a>
+      However, because it's so comprehensive, it often presents only general guidelines, rather than
+      specific recommendations beginners are usually looking for. This guide goes over some specific
+      things I learned during my several installations and their advantages/disadvantages.
+    </p>
+    <h3>Partitioning</h3>
+    <p>
+      My current partition layout on a 256 GB SSD is as follows:
+      <pre>
+        +---------------------------+ +---------------------------+---------------+
+        | EFI System Partition      | | Logical volume (root)     | Empty space   |
+        | /dev/nvme0n1p1            | | /dev/vg1/root             | for snapshots |
+        |                           | |                           |               |
+        | Size: 512 MiB             | | Size: 230 GiB             | Size: ~8 GiB  |
+        | Type: EFI System          | | Mounted on: /             |               |
+        | Mounted on: /boot         | |                           |               |
+        |                           | |                           |               |
+        |                           | |                           |               |
+        |                           | +---------------------------+---------------+
+        |                           | |                                           |
+        |                           | | LUKS2 encrypted partition                 |
+        |                           | | /dev/nvme0n1p2                            |
+        |                           | |                                           |
+        |                           | | Size: 100% remaining                      |
+        |                           | | Type: Linux filesystem                    |
+        |                           | | PV: /dev/mapper/cryptlvm                  |
+        |                           | |                                           |
+        +---------------------------+ +-------------------------------------------+
+      </pre>
+      I've forgone the usual swap partition because my laptop has 32 GiB of RAM, which has been more
+      than enough to handle my daily usage. I don't need hibernation either, so this works fine for
+      me. However, after reading
+      <a href="https://haydenjames.io/linux-performance-almost-always-add-swap-space/">this article,</a>
+      I realized that reserving around 4 GiB of swap space (in exchange for a smaller snapshot
+      space, which I never fully utilize anyways), could result in cache performance benefits and
+      provide some leeway before processes start getting shut down, should I ever run out of memory
+      for any reason. When I upgrade my laptop and get a bigger SSD, I will definitely apply these
+      changes.
+    </p>
+    <h3>Encryption</h3>
+    <p>
+      As you can see from the diagram under "Partitioning," I have something called a "LUKS2
+      encrypted partition." I highly recommend encrypting your hard drive and setting up LVM on top
+      of it. This method is known as
+      <a href="https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS">LVM on LUKS,</a>
+      and it's probably the most sensible approach for a personal laptop with a single drive.
+    </p>
   }
 {endwith}

@@ -98,6 +98,8 @@
       for (let i = BORDER_SIZE / 2; i < canvas.width; i += OUTER_CELL_SIZE) {
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
+      }
+      for (let i = BORDER_SIZE / 2; i < canvas.height; i += OUTER_CELL_SIZE) {
         ctx.moveTo(0, i);
         ctx.lineTo(canvas.width, i);
       }

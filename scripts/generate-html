@@ -1,9 +1,18 @@
 #!/bin/bash
 
-src_dir="html-src"
+src=html
+dest=output
 
-for i in $(find "$src_dir" -type f); do
-    output=${i#"$src_dir/"}
-    mkdir -p "$(dirname "$output")"
-    scripts/parse-file "$i" | scripts/SmartyPants.pl > "$output"
+cd $(git rev-parse --show-toplevel)
+
+rm -r $dest
+
+for file in $(find $src -type f); do
+    output=${file/$src/$dest}
+    mkdir -p $(dirname $output)
+    scripts/parse-file $file | scripts/SmartyPants.pl > $output
+done
+
+for dir in res scripts styles demos; do
+    ln -s ../$dir $dest/$dir
 done

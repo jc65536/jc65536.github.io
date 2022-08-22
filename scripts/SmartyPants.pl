@@ -39,7 +39,7 @@ sub SmartyPants {
         if ($cur_token->[0] eq "tag") {
             # Don't mess with quotes inside tags.
             $result .= $cur_token->[1];
-            if ($cur_token->[1] =~ m!<(/?)(?:pre|code|kbd|script|math)[\s>]!) {
+            if ($cur_token->[1] =~ m!<(/?)(?:pre|code|kbd|script|math|style)[\s>]!) {
                 $in_pre = defined $1 && $1 eq '/' ? 0 : 1;
             }
         } else {

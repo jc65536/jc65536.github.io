@@ -2,6 +2,7 @@
 
 import re
 import sys
+import subprocess
 from typing import Iterable
 from enum import Enum, auto
 
@@ -13,31 +14,37 @@ class State(Enum):
     DEFAULT = auto()
     INCLUDE_WITH = auto()
     TEXT = auto()
+    QUOTES = auto()
 
 
 def strip_list(lines: Iterable[str]):
-    return "".join(lines).strip().splitlines(keepends=True)
+    return "".join(lines).strip()
 
 
-def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
+def parse(file: Iterable[str], subs: dict[str, str] = {}):
     state = State.DEFAULT
-    include_subs: dict[str, list[str]] = {}
+    include_subs: dict[str, list[str] | str] = {}
+    quote_buf: list[str] = []
 
     for line in file:
         # Breaking this while implies that we've consumed the whole line
         while line:
             match state:
                 case State.INCLUDE_WITH:
-                    if (match := directive_pat.search(line)) and match.group(1) == "endwith":
+                    match = directive_pat.search(line)
+                    if match and match.group(1) == "endwith":
                         after_end = line[match.end():]
                         # We'll still parse the content until {endwith}
                         line = line[:match.start()]
                         state = State.DEFAULT
 
-                    if len(segments := line.split(":", 1)) > 1:
+                    segments = line.split(":", 1)
+                    if len(segments) > 1:
                         key = segments[0].strip()
                         line = segments[1].lstrip()
-                        if match := text_open_pat.match(line):
+
+                        match = text_open_pat.match(line)
+                        if match:
                             text_close_pat = match.group(1) + "}"
                             include_subs[key] = []
                             line = line[match.end():]
@@ -56,7 +63,8 @@ def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
                         break
 
                 case State.TEXT:
-                    if len(segments := line.split(text_close_pat, 1)) > 1:
+                    segments = line.split(text_close_pat, 1)
+                    if len(segments) > 1:
                         include_subs[key].append(segments[0].strip())
                         include_subs[key] = strip_list(
                             parse(include_subs[key], subs))
@@ -66,19 +74,49 @@ def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
                         include_subs[key].append(line.strip() + "\n")
                         break
 
+                case State.QUOTES:
+                    match = directive_pat.search(line)
+                    if match and match.group(1) == "endquotes":
+                        after_end = line[match.end():]
+                        line = line[:match.start()]
+                        state = State.DEFAULT
+
+                    quote_buf.append(line.strip() + "\n")
+
+                    if state is not State.QUOTES:
+                        process = subprocess.run("scripts/SmartyPants.pl",
+                                                 input=strip_list(
+                                                     parse(quote_buf, subs)),
+                                                 capture_output=True,
+                                                 text=True)
+                        yield process.stdout
+                        quote_buf = ""
+                        line = after_end
+                    else:
+                        break
+
                 case State.DEFAULT:
-                    if match := directive_pat.search(line):
+                    match = directive_pat.search(line)
+                    if match:
                         yield line[:match.start()]
+
                         match match.group(1).split():
                             case ["include", filename]:
                                 with open(f"templates/{filename}") as include_file:
                                     yield from parse(include_file)
+
                             case ["include", filename, "with"]:
                                 state = State.INCLUDE_WITH
+
+                            case ["quotes"]:
+                                state = State.QUOTES
+
                             case [key] if key in subs:
-                                yield from subs[key]
+                                yield subs[key]
+
                             case _:
                                 yield match.group(0)
+
                         line = line[match.end():]
                     else:
                         yield line

@@ -8,9 +8,9 @@ cd $(git rev-parse --show-toplevel)
 rm -r $dest
 
 for file in $(find $src -type f); do
-    output=${file/$src/$dest}
+    output=${file/#$src/$dest}
     mkdir -p $(dirname $output)
-    scripts/parse-file $file | scripts/SmartyPants.pl > $output
+    scripts/parse-file $file > $output
 done
 
 for dir in res scripts styles demos; do

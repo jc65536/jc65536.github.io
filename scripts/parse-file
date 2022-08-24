@@ -3,11 +3,13 @@
 import re
 import sys
 import subprocess
-from typing import Iterable
+from typing import Iterable, Iterator
 from enum import Enum, auto
 
-directive_pat = re.compile("{([^}]+)}")
-text_open_pat = re.compile("{(\**)")
+DIRECTIVE_PAT = re.compile("{([^}]+)}")
+TEXT_OPEN_PAT = re.compile("{(\**)")
+
+line_rem = ""
 
 
 class State(Enum):
@@ -21,95 +23,159 @@ def strip_list(lines: Iterable[str]):
     return "".join(lines).strip()
 
 
-def parse(file: Iterable[str], subs: dict[str, str] = {}):
+def get_lr():
+    global line_rem
+    temp = line_rem
+    line_rem = ""
+    return temp
+
+
+def set_lr(s: str):
+    global line_rem
+    line_rem = s
+
+
+level = -1
+
+
+def p(s):
+#   print(" " * level * 4 + s)
+    pass
+
+
+def parse(src: Iterator[str], subs: dict[str, str] = {}, exit_pat: str = ""):
+    global level
+    level += 1
     state = State.DEFAULT
     include_subs: dict[str, list[str] | str] = {}
     quote_buf: list[str] = []
+    exit_found = False
 
-    for line in file:
-        # Breaking this while implies that we've consumed the whole line
-        while line:
-            match state:
-                case State.INCLUDE_WITH:
-                    match = directive_pat.search(line)
-                    if match and match.group(1) == "endwith":
-                        after_end = line[match.end():]
-                        # We'll still parse the content until {endwith}
-                        line = line[:match.start()]
-                        state = State.DEFAULT
+    while True:
+        try:
+            if line_rem:
+                line = get_lr()
+            else:
+                line = next(src)
 
-                    segments = line.split(":", 1)
-                    if len(segments) > 1:
-                        key = segments[0].strip()
-                        line = segments[1].lstrip()
+            # Breaking this while implies that we've consumed the whole line
+            while line:
+                match state:
+                    case State.INCLUDE_WITH:
+                        end_idx = line.find("{endwith}")
+                        end_found = end_idx != -1
 
-                        match = text_open_pat.match(line)
-                        if match:
-                            text_close_pat = match.group(1) + "}"
-                            include_subs[key] = []
-                            line = line[match.end():]
-                            state = State.TEXT
+                        colon_idx = line.find(":")
+                        colon_found = colon_idx != -1
+
+                        if not end_found and not colon_found:
+                            break
+
+                        if end_found and (not colon_found or colon_idx >= end_idx):
+                            line = line[end_idx + len("{endwith}"):]
+                            with open(f"templates/{filename}") as include_file:
+                                yield from parse(include_file, include_subs)
+                            include_subs.clear()
+                            state = State.DEFAULT
                             continue
-                        else:   # No braces => we'll just take the rest of the line
+
+                        key = line[:colon_idx].strip()
+                        after_colon = line[colon_idx + 1:]
+                        match = TEXT_OPEN_PAT.search(line, colon_idx + 1)
+                        p("key: " + key)
+
+                        # No braces, so we'll just take the rest of the line
+                        if not end_found and not match:
+                            p("branch: rest of line")
                             include_subs[key] = strip_list(
-                                parse([line.rstrip()], subs))
+                                parse(iter([after_colon.strip()]), subs))
+                            p("value: " + include_subs[key])
+                            break
 
-                    if state is not State.INCLUDE_WITH:
-                        with open(f"templates/{filename}") as include_file:
-                            yield from parse(include_file, include_subs)
-                        include_subs.clear()
-                        line = after_end
-                    else:
-                        break
+                        # We'll take the rest of the line until endwith
+                        if end_found and (not match or match.start() >= end_idx):
+                            p("branch: rest of line until endwith")
+                            include_subs[key] = strip_list(
+                                parse(iter([line[colon_idx + 1:end_idx].strip()]), subs))
+                            line = line[end_idx + len("{endwith}"):]
+                            p("value: " + include_subs[key])
 
-                case State.TEXT:
-                    segments = line.split(text_close_pat, 1)
-                    if len(segments) > 1:
-                        include_subs[key].append(segments[0].strip())
+                            with open(f"templates/{filename}") as include_file:
+                                yield from parse(include_file, include_subs)
+                            include_subs.clear()
+
+                            p("rem: " + line)
+                            state = State.DEFAULT
+                            continue
+
+                        p("branch: recurse")
+                        line = line[match.end():]
+                        end_found = False
+
+                        set_lr(line)
                         include_subs[key] = strip_list(
-                            parse(include_subs[key], subs))
-                        line = segments[1]
-                        state = State.INCLUDE_WITH
-                    else:
-                        include_subs[key].append(line.strip() + "\n")
-                        break
+                            parse(src, subs, match.group(1) + "}"))
+                        line = get_lr()
 
-                case State.QUOTES:
-                    match = directive_pat.search(line)
-                    if match and match.group(1) == "endquotes":
-                        after_end = line[match.end():]
-                        line = line[:match.start()]
-                        state = State.DEFAULT
+                        p("value: " + include_subs[key])
 
-                    quote_buf.append(line.strip() + "\n")
+                    case State.QUOTES:
+                        match = DIRECTIVE_PAT.search(line)
+                        if match and match.group(1) == "endquotes":
+                            after_end = line[match.end():]
+                            line = line[:match.start()]
+                            state = State.DEFAULT
 
-                    if state is not State.QUOTES:
-                        process = subprocess.run("scripts/SmartyPants.pl",
-                                                 input=strip_list(
-                                                     parse(quote_buf, subs)),
-                                                 capture_output=True,
-                                                 text=True)
-                        yield process.stdout
-                        quote_buf = ""
-                        line = after_end
-                    else:
-                        break
+                        quote_buf.append(line.strip() + "\n")
 
-                case State.DEFAULT:
-                    match = directive_pat.search(line)
-                    if match:
+                        if state is not State.QUOTES:
+                            process = subprocess.run("scripts/SmartyPants.pl",
+                                                     input=strip_list(
+                                                         parse(quote_buf, subs)),
+                                                     capture_output=True,
+                                                     text=True)
+                            yield process.stdout
+                            quote_buf = ""
+                            line = after_end
+                        else:
+                            break
+
+                    case State.DEFAULT:
+                        p("line: " + line)
+                        if exit_pat:
+                            exit_idx = line.find(exit_pat)
+                            exit_found = exit_idx != -1
+
+                        match = DIRECTIVE_PAT.search(line)
+
+                        if not exit_found and not match:
+                            yield line
+                            break
+
+                        if exit_found and (not match or match.start() >= exit_idx):
+                            yield line[:exit_idx]
+                            set_lr(line[exit_idx + len(exit_pat):])
+                            p("rem: " + line_rem)
+                            level -= 1
+                            return
+
                         yield line[:match.start()]
+
+                        line = line[match.end():]
+                        exit_found = False
 
                         match match.group(1).split():
                             case ["include", filename]:
-                                with open(f"templates/{filename}") as include_file:
-                                    yield from parse(include_file)
+                                with open(f"templates/{filename}") as file:
+                                    yield from parse(file)
 
                             case ["include", filename, "with"]:
                                 state = State.INCLUDE_WITH
 
                             case ["quotes"]:
-                                state = State.QUOTES
+                                set_lr(line)
+                                yield from parse(src, subs, "{endquotes}")
+                                line = get_lr()
 
                             case [key] if key in subs:
                                 yield subs[key]
@@ -117,10 +183,9 @@ def parse(file: Iterable[str], subs: dict[str, str] = {}):
                             case _:
                                 yield match.group(0)
 
-                        line = line[match.end():]
-                    else:
-                        yield line
-                        break
+        except StopIteration:
+            break
+    level -= 1
 
 
 with open(sys.argv[1]) as file:

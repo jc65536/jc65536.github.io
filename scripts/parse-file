@@ -39,7 +39,7 @@ level = -1
 
 
 def p(s):
-#   print(" " * level * 4 + s)
+    #   print(" " * level * 4 + s)
     pass
 
 
@@ -71,53 +71,47 @@ def parse(src: Iterator[str], subs: dict[str, str] = {}, exit_pat: str = ""):
                         if not end_found and not colon_found:
                             break
 
-                        if end_found and (not colon_found or colon_idx >= end_idx):
-                            line = line[end_idx + len("{endwith}"):]
-                            with open(f"templates/{filename}") as include_file:
-                                yield from parse(include_file, include_subs)
-                            include_subs.clear()
-                            state = State.DEFAULT
-                            continue
+                        if colon_found and (not end_found or colon_idx < end_idx):
+                            key = line[:colon_idx].strip()
+                            match = TEXT_OPEN_PAT.search(line, colon_idx + 1)
+                            p("key: " + key)
 
-                        key = line[:colon_idx].strip()
-                        after_colon = line[colon_idx + 1:]
-                        match = TEXT_OPEN_PAT.search(line, colon_idx + 1)
-                        p("key: " + key)
+                            # No braces, so we'll just take the rest of the line
+                            if not end_found and not match:
+                                p("branch: rest of line")
+                                include_subs[key] = strip_list(
+                                    parse(iter([line[colon_idx + 1:].strip()]), subs))
+                                p("value: " + include_subs[key])
+                                break
 
-                        # No braces, so we'll just take the rest of the line
-                        if not end_found and not match:
-                            p("branch: rest of line")
-                            include_subs[key] = strip_list(
-                                parse(iter([after_colon.strip()]), subs))
-                            p("value: " + include_subs[key])
-                            break
+                            # Braces mean recursion
+                            if match and (not end_found or match.start() < end_idx):
+                                p("branch: recurse")
+                                line = line[match.end():]
+                                end_found = False
 
-                        # We'll take the rest of the line until endwith
-                        if end_found and (not match or match.start() >= end_idx):
+                                set_lr(line)
+                                include_subs[key] = strip_list(
+                                    parse(src, subs, match.group(1) + "}"))
+                                line = get_lr()
+
+                                p("value: " + include_subs[key])
+                                continue
+
+                            # We'll take the rest of the line until endwith
                             p("branch: rest of line until endwith")
                             include_subs[key] = strip_list(
                                 parse(iter([line[colon_idx + 1:end_idx].strip()]), subs))
-                            line = line[end_idx + len("{endwith}"):]
                             p("value: " + include_subs[key])
 
-                            with open(f"templates/{filename}") as include_file:
-                                yield from parse(include_file, include_subs)
-                            include_subs.clear()
+                        # Reached end of include with block
+                        with open(f"templates/{filename}") as include_file:
+                            yield from parse(include_file, include_subs)
 
-                            p("rem: " + line)
-                            state = State.DEFAULT
-                            continue
-
-                        p("branch: recurse")
-                        line = line[match.end():]
-                        end_found = False
-
-                        set_lr(line)
-                        include_subs[key] = strip_list(
-                            parse(src, subs, match.group(1) + "}"))
-                        line = get_lr()
-
-                        p("value: " + include_subs[key])
+                        line = line[end_idx + len("{endwith}"):]
+                        include_subs.clear()
+                        state = State.DEFAULT
+                        p("rem: " + line)
 
                     case State.QUOTES:
                         match = DIRECTIVE_PAT.search(line)
@@ -152,7 +146,7 @@ def parse(src: Iterator[str], subs: dict[str, str] = {}, exit_pat: str = ""):
                             yield line
                             break
 
-                        if exit_found and (not match or match.start() >= exit_idx):
+                        if exit_found and not (match and match.start() < exit_idx):
                             yield line[:exit_idx]
                             set_lr(line[exit_idx + len(exit_pat):])
                             p("rem: " + line_rem)

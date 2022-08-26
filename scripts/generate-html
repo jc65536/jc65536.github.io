@@ -10,7 +10,7 @@ rm -r $dest
 for file in $(find $src -type f); do
     output=${file/#$src/$dest}
     mkdir -p $(dirname $output)
-    scripts/parse_file $file > $output
+    scripts/parse-file $file > $output
 done
 
 for dir in res scripts styles demos; do

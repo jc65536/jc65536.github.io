@@ -1,30 +1,16 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
-#
-# SmartyPants
-#
-# Copyright (c) 2004 John Gruber   
-# (http://daringfireball.net/)   
-# All rights reserved.
-#
-
+package SmartyPants;
 use strict;
+use warnings;
 use utf8;
 use open qw( :std :encoding(UTF-8) );
-
-
-#### Process incoming text: #####################################
-my $old = $/;
-undef $/;               # slurp the whole file
-my $text = <>;
-$/ = $old;
-print SmartyPants($text);
 
 
 sub SmartyPants {
     my $text = shift;   # text to be parsed
 
-    my $tokens ||= _tokenize($text);
+    my $tokens = _tokenize($text);
     my $result = '';
     my $in_pre = 0;  # Keep track of when we're inside <pre> or <code> tags.
 
@@ -35,7 +21,7 @@ sub SmartyPants {
                                     # token, to use as context to curl single-
                                     # character quote tokens correctly.
 
-    foreach my $cur_token (@$tokens) {
+    for my $cur_token (@$tokens) {
         if ($cur_token->[0] eq "tag") {
             # Don't mess with quotes inside tags.
             $result .= $cur_token->[1];
@@ -156,12 +142,12 @@ sub EducateEllipses {
 
 sub ProcessEscapes {
     local $_ = shift;
-    s! \\\\ !&#92;!gx;
-    s! \\"  !&#34;!gx;
-    s! \\'  !&#39;!gx;
-    s! \\\. !&#46;!gx;
-    s! \\-  !&#45;!gx;
-    s! \\`  !&#96;!gx;
+    s!\\\\!&#92;!gx;
+    s!\\" !&#34;!gx;
+    s!\\' !&#39;!gx;
+    s!\\\.!&#46;!gx;
+    s!\\- !&#45;!gx;
+    s!\\` !&#96;!gx;
     return $_;
 }
 
@@ -213,3 +199,5 @@ sub _tokenize {
     push @tokens, ['text', substr($str, $pos, $len - $pos)] if $pos < $len;
     \@tokens;
 }
+
+1;

@@ -1,187 +1,178 @@
-#!/usr/bin/env python3
+#!/usr/bin/perl
 
-import re
-import sys
-import subprocess
-from typing import Iterable, Iterator
-from enum import Enum, auto
+use strict;
+use warnings;
+# use lib "scripts";
+# use SmartyPants;
+use open qw( :std :encoding(UTF-8) );
 
-DIRECTIVE_PAT = re.compile("{([^}]+)}")
-TEXT_OPEN_PAT = re.compile("{(\**)")
+my $TEMPLATE_DIR = "templates";
+my $DEBUG = 0;
 
-line_rem = ""
+my $DIRECT_PAT = qr/{([^}]+)}/;
+my $OPEN_PAT = qr/{(\**)/;
 
+my $remainder = "";
+my $level = -1;
 
-class State(Enum):
-    DEFAULT = auto()
-    INCLUDE_WITH = auto()
-    TEXT = auto()
-    QUOTES = auto()
+# $\ = "~";
 
+sub parse_file;
+sub parse_subs;
 
-def strip_list(lines: Iterable[str]):
-    return "".join(lines).strip()
+sub get_rem {
+    my $temp = $remainder;
+    $remainder = "";
+    $temp
+}
 
+sub set_rem {
+    $remainder = shift;
+}
 
-def get_lr():
-    global line_rem
-    temp = line_rem
-    line_rem = ""
-    return temp
+sub trim {
+    my $str = shift;
+    $str =~ s/^\s+|\s+$//g;
+    $str
+}
 
+sub file_iter {
+    my $file = shift;
+    sub { <$file> }
+}
 
-def set_lr(s: str):
-    global line_rem
-    line_rem = s
+sub str_iter {
+    my @lines = split /\n/, shift;
+    sub { shift @lines }
+}
 
+sub dbg {
+    return if !$DEBUG;
+    my $func = shift;
+    printf "%-11s>", $func;
+    print " " x $level x 4 , @_, "\n";
+}
 
-level = -1
+sub put {
+    my ($buf, $str) = @_;
 
+    if (defined $buf) {
+        $$buf .= $str;
+    } else {
+        print $str;
+    }
+}
 
-def p(s):
-    #   print(" " * level * 4 + s)
-    pass
+sub parse_file {
+    my ($iter, $subs, $dest, $exit_pat) = @_;
 
+    while (1) {
+        my $line = get_rem || &$iter // return;
 
-def parse(src: Iterator[str], subs: dict[str, str] = {}, exit_pat: str = ""):
-    global level
-    level += 1
-    state = State.DEFAULT
-    include_subs: dict[str, list[str] | str] = {}
-    quote_buf: list[str] = []
-    exit_found = False
+        while ($line) {
+            my ($exit_idx, $exit_found) = -1, 0;
+            if (defined $exit_pat) {
+                $exit_idx = index $line, $exit_pat;
+                $exit_found = $exit_idx != -1;
+            }
 
-    while True:
-        try:
-            if line_rem:
-                line = get_lr()
-            else:
-                line = next(src)
+            my $direct_found = $line =~ $DIRECT_PAT;
+            my $direct_idx = $-[0];
+            my $direct_end = $+[0];
 
-            # Breaking this while implies that we've consumed the whole line
-            while line:
-                match state:
-                    case State.INCLUDE_WITH:
-                        end_idx = line.find("{endwith}")
-                        end_found = end_idx != -1
+            if (!$exit_found && !$direct_found) {
+                put $dest, $line;
+                last;
+            }
 
-                        colon_idx = line.find(":")
-                        colon_found = colon_idx != -1
+            if ($exit_found && !($direct_found && $direct_idx < $exit_idx)) {
+                put $dest, substr($line, 0, $exit_idx);
+                set_rem substr($line, $exit_idx + length $exit_pat);
+                return;
+            }
 
-                        if not end_found and not colon_found:
-                            break
+            put $dest, substr($line, 0, $direct_idx) if ($direct_idx > 0);
 
-                        if colon_found and (not end_found or colon_idx < end_idx):
-                            key = line[:colon_idx].strip()
-                            match = TEXT_OPEN_PAT.search(line, colon_idx + 1)
-                            p("key: " + key)
+            my @tokens = split " ", $1;
+            my $name = shift @tokens;
 
-                            # No braces, so we'll just take the rest of the line
-                            if not end_found and not match:
-                                p("branch: rest of line")
-                                include_subs[key] = strip_list(
-                                    parse(iter([line[colon_idx + 1:].strip()]), subs))
-                                p("value: " + include_subs[key])
-                                break
+            if ($name eq "include") {
+                my $filename = shift @tokens;
+                if (defined $tokens[0] && $tokens[0] eq "with") {
+                    my %incl_subs;
 
-                            # Braces mean recursion
-                            if match and (not end_found or match.start() < end_idx):
-                                p("branch: recurse")
-                                line = line[match.end():]
-                                end_found = False
+                    set_rem substr($line, $direct_end);
+                    parse_subs $iter, $subs, \%incl_subs;
+                    $line = get_rem;
 
-                                set_lr(line)
-                                include_subs[key] = strip_list(
-                                    parse(src, subs, match.group(1) + "}"))
-                                line = get_lr()
+                    open my $file, "<", "$TEMPLATE_DIR/$filename";
+                    parse_file file_iter($file), \%incl_subs, $dest;
+                    close $file;
 
-                                p("value: " + include_subs[key])
-                                continue
+                    next;
+                } else {
+                    # Include file with no processing
+                    open my $file, "<", "$TEMPLATE_DIR/$filename";
+                    parse_file file_iter($file), $dest;
+                    close $file;
+                }
+            } elsif (exists $$subs{$name}) {
+                put $dest, $$subs{$name};
+            } else {
+                put $dest, substr($line, $direct_idx, $direct_end - $direct_idx);
+            }
 
-                            # We'll take the rest of the line until endwith
-                            p("branch: rest of line until endwith")
-                            include_subs[key] = strip_list(
-                                parse(iter([line[colon_idx + 1:end_idx].strip()]), subs))
-                            p("value: " + include_subs[key])
+            $line = substr $line, $direct_end;
+        }
+    }
+}
 
-                        # Reached end of include with block
-                        with open(f"templates/{filename}") as include_file:
-                            yield from parse(include_file, include_subs)
+sub parse_subs {
+    my ($iter, $subs, $incl_subs) = @_;
+    my $exit_pat = "{endwith}";
 
-                        line = line[end_idx + len("{endwith}"):]
-                        include_subs.clear()
-                        state = State.DEFAULT
-                        p("rem: " + line)
+    while (1) {
+        my $line = get_rem || &$iter // return;
 
-                    case State.QUOTES:
-                        match = DIRECTIVE_PAT.search(line)
-                        if match and match.group(1) == "endquotes":
-                            after_end = line[match.end():]
-                            line = line[:match.start()]
-                            state = State.DEFAULT
+        while ($line) {
+            my $exit_idx = index $line, $exit_pat;
+            my $exit_found = $exit_idx != -1;
 
-                        quote_buf.append(line.strip() + "\n")
+            my $colon_idx = index $line, ":";
+            my $colon_found = $colon_idx != -1;
 
-                        if state is not State.QUOTES:
-                            process = subprocess.run("scripts/SmartyPants.pl",
-                                                     input=strip_list(
-                                                         parse(quote_buf, subs)),
-                                                     capture_output=True,
-                                                     text=True)
-                            yield process.stdout
-                            quote_buf = ""
-                            line = after_end
-                        else:
-                            break
+            last if !$exit_found && !$colon_found;
 
-                    case State.DEFAULT:
-                        p("line: " + line)
-                        if exit_pat:
-                            exit_idx = line.find(exit_pat)
-                            exit_found = exit_idx != -1
+            if ($exit_found && !($colon_found && $colon_idx < $exit_idx)) {
+                set_rem substr($line, $exit_idx + length $exit_pat);
+                return;
+            }
 
-                        match = DIRECTIVE_PAT.search(line)
+            my $key = trim substr($line, 0, $colon_idx);
+            my $after_colon = substr $line, $colon_idx + 1;
+            $after_colon =~ s/^\s+//;
 
-                        if not exit_found and not match:
-                            yield line
-                            break
+            my $open_found = $after_colon =~ /^$OPEN_PAT/;
 
-                        if exit_found and not (match and match.start() < exit_idx):
-                            yield line[:exit_idx]
-                            set_lr(line[exit_idx + len(exit_pat):])
-                            p("rem: " + line_rem)
-                            level -= 1
-                            return
+            $$incl_subs{$key} = "";
 
-                        yield line[:match.start()]
+            # No braces, so we'll just take the rest of the line
+            if (!$open_found) {
+                my $rest = substr($line, $colon_idx + 1);
+                parse_file str_iter($rest), $subs, \$$incl_subs{$key};
+                trim $$incl_subs{$key};
+                last;
+            }
 
-                        line = line[match.end():]
-                        exit_found = False
+            my $open_end = $+[0];
 
-                        match match.group(1).split():
-                            case ["include", filename]:
-                                with open(f"templates/{filename}") as file:
-                                    yield from parse(file)
+            # Braces mean recursion
+            set_rem substr($after_colon, $open_end);
+            parse_file $iter, $subs, \$$incl_subs{$key}, "$1}";
+            trim $$incl_subs{$key};
+            $line = get_rem;
+        }
+    }
+}
 
-                            case ["include", filename, "with"]:
-                                state = State.INCLUDE_WITH
-
-                            case ["quotes"]:
-                                set_lr(line)
-                                yield from parse(src, subs, "{endquotes}")
-                                line = get_lr()
-
-                            case [key] if key in subs:
-                                yield subs[key]
-
-                            case _:
-                                yield match.group(0)
-
-        except StopIteration:
-            break
-    level -= 1
-
-
-with open(sys.argv[1]) as file:
-    for line in parse(file):
-        print(line, end="")
+parse_file sub { <> };

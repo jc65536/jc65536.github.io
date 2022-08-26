@@ -31,9 +31,7 @@ sub set_rem {
 }
 
 sub trim {
-    my $str = shift;
-    $str =~ s/^\s+|\s+$//g;
-    $str
+    $_[0] =~ s/^\s+|\s+$//g;
 }
 
 sub file_iter {
@@ -68,7 +66,8 @@ sub parse_file {
 
     do {
         while ($line) {
-            my ($exit_idx, $exit_found) = -1, 0;
+            my $exit_idx = -1;
+            my $exit_found = 0;
             if (defined $exit_pat) {
                 $exit_idx = index $line, $exit_pat;
                 $exit_found = $exit_idx != -1;
@@ -99,7 +98,7 @@ sub parse_file {
                     my %incl_subs;
 
                     $line = parse_subs $iter, \%incl_subs, $subs,
-                            substr($line, $direct_end);
+                                       substr($line, $direct_end);
 
                     open my $file, "<", "$TEMPLATE_DIR/$filename";
                     parse_file file_iter($file), $dest, \%incl_subs;
@@ -112,6 +111,8 @@ sub parse_file {
                     parse_file file_iter($file), $dest;
                     close $file;
                 }
+            } elsif () {
+                
             } elsif (exists $$subs{$name}) {
                 put $dest, $$subs{$name};
             } else {
@@ -143,11 +144,12 @@ sub parse_subs {
                 return substr($line, $exit_idx + length $exit_pat);
             }
 
-            my $key = trim substr($line, 0, $colon_idx);
+            my $key = substr($line, 0, $colon_idx);
+            trim $key;
             my $after_colon = substr $line, $colon_idx + 1;
-            $after_colon =~ s/^\s+//;
 
-            my $open_found = $after_colon =~ /^$OPEN_PAT/;
+            my $open_found = $after_colon =~ /^\s*$OPEN_PAT/;
+            my $open_end = $+[0];
 
             $$incl_subs{$key} = "";
 
@@ -157,11 +159,9 @@ sub parse_subs {
                 trim $$incl_subs{$key};
                 last;
             } else {
-                my $open_end = $+[0];
-
                 # Braces mean recursion
                 $line = parse_file $iter, \$$incl_subs{$key}, $subs, "$1}",
-                        substr($after_colon, $open_end);
+                                   substr($after_colon, $open_end);
                 trim $$incl_subs{$key};
             }
         }

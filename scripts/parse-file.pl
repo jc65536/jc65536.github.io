@@ -12,23 +12,10 @@ my $DEBUG = 0;
 my $DIRECT_PAT = qr/{([^}]+)}/;
 my $OPEN_PAT = qr/{(\**)/;
 
-my $remainder = "";
-my $level = -1;
-
 # $\ = "~";
 
 sub parse_file;
 sub parse_subs;
-
-sub get_rem {
-    my $temp = $remainder;
-    $remainder = "";
-    $temp
-}
-
-sub set_rem {
-    $remainder = shift;
-}
 
 sub trim {
     $_[0] =~ s/^\s+|\s+$//g;
@@ -42,13 +29,6 @@ sub file_iter {
 sub str_iter {
     my @lines = split /\n/, shift;
     sub { shift @lines }
-}
-
-sub dbg {
-    return if !$DEBUG;
-    my $func = shift;
-    printf "%-11s>", $func;
-    print " " x $level x 4 , @_, "\n";
 }
 
 sub put {

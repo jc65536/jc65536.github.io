@@ -50,9 +50,8 @@ Example:
 ### `{with}`
 
 As the preprocessor parses the file, it keeps a dictionary of keys and
-associated text in order to make substitutions. This directive parses
-substitutions until the corresponding `{endwith}` and adds the new entries to
-the dictionary.
+associated substitution texts. This directive parses substitutions until the
+corresponding `{endwith}` and adds the new entries to the dictionary.
 
 Substitutions are declared in the form
 
@@ -68,7 +67,7 @@ include directives of its own. The newlines after the opening curly brace are
 optional, but the opening curly brace must be on the same line as the key. If,
 for any reason, the text contains curly braces, you can place an equal number
 of asterisks after the opening delimiter and before the closing delimiter to
-distinguish it from the in-text curly braces like so:
+distinguish it from the in-text curly braces, like so:
 
 ```
 key: {*
@@ -102,7 +101,7 @@ Example:
 <a href="{arch_wiki}">{description}</a>
 ```
 
-Note: In the declaration of `title`, the `{q}` variant could not be used
+Note: In the declaration of `title`, the `{q}` variant could not have been used
 because the preprocessor would have interpreted the directive as substitution
 text within curly braces.
 

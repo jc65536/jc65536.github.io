@@ -49,7 +49,7 @@ def parse_with(src: Iterator[str],
                                   after_colon[match.end():])
             else:
                 parse_file(iter([after_colon]), str_buf, subs)
-                line = ""   # Force exit
+                line = ""   # Force break
 
             include_subs[key] = str_buf.getvalue().strip()
 
@@ -99,13 +99,15 @@ def parse_file(src: Iterator[str],
                         parse_file(file, dest, include_subs)
 
                 case ["q"]:
+                    str_buf = StringIO()
+
                     if match[0][0] == "$":
-                        smart_quotify(line, dest)
-                        break
+                        parse_file(iter([line]), str_buf, subs)
+                        line = ""   # Force break
                     else:
-                        str_buf = StringIO()
                         line = parse_file(src, str_buf, subs, "{endq}", line)
-                        smart_quotify(str_buf.getvalue(), dest)
+
+                    smart_quotify(str_buf.getvalue(), dest)
 
                 case ["with"]:
                     line = parse_with(src, subs, subs, line)

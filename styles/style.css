@@ -8,7 +8,7 @@
     float: right;
 }
 
-.horizontal-link-list a + a {
+.horiz-list > * + * {
     margin-left: 4%;
 }
 

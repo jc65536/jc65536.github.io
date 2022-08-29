@@ -2,20 +2,18 @@
 
 use strict;
 use warnings;
-# use lib "scripts";
-# use SmartyPants;
-use open qw( :std :encoding(UTF-8) );
+use lib "scripts";
+use SmartyPants;
+use open qw(:std :encoding(UTF-8));
+use Encode "decode";
 
 my $TEMPLATE_DIR = "templates";
-my $DEBUG = 0;
 
-my $DIRECT_PAT = qr/{([^}]+)}/;
+my $DIRECT_PAT = qr/\$?{([^}]+)}/;
 my $OPEN_PAT = qr/{(\**)/;
 
-# $\ = "~";
-
 sub parse_file;
-sub parse_subs;
+sub parse_with;
 
 sub trim {
     $_[0] =~ s/^\s+|\s+$//g;
@@ -29,16 +27,6 @@ sub file_iter {
 sub str_iter {
     my @lines = split /\n/, shift;
     sub { shift @lines }
-}
-
-sub put {
-    my ($buf, $str) = @_;
-
-    if (defined $buf) {
-        $$buf .= $str;
-    } else {
-        print $str;
-    }
 }
 
 sub parse_file {
@@ -58,27 +46,28 @@ sub parse_file {
             my $direct_end = $+[0];
 
             if (!$exit_found && !$direct_found) {
-                put $dest, $line;
+                print $dest $line;
                 last;
             }
 
             if ($exit_found && !($direct_found && $direct_idx < $exit_idx)) {
-                put $dest, substr($line, 0, $exit_idx);
+                print $dest substr($line, 0, $exit_idx);
                 return substr($line, $exit_idx + length $exit_pat);
             }
 
-            put $dest, substr($line, 0, $direct_idx) if ($direct_idx > 0);
+            print $dest substr($line, 0, $direct_idx) if ($direct_idx > 0);
 
+            my $match = substr($line, $direct_idx, $direct_end - $direct_idx);
             my @tokens = split " ", $1;
             my $name = shift @tokens;
+            $line = substr $line, $direct_end;
 
             if ($name eq "include") {
                 my $filename = shift @tokens;
                 if (defined $tokens[0] && $tokens[0] eq "with") {
                     my %incl_subs;
 
-                    $line = parse_subs $iter, \%incl_subs, $subs,
-                                       substr($line, $direct_end);
+                    $line = parse_with $iter, \%incl_subs, $subs, $line;
 
                     open my $file, "<", "$TEMPLATE_DIR/$filename";
                     parse_file file_iter($file), $dest, \%incl_subs;
@@ -91,22 +80,34 @@ sub parse_file {
                     parse_file file_iter($file), $dest;
                     close $file;
                 }
-            } elsif () {
-                
-            } elsif (exists $$subs{$name}) {
-                put $dest, $$subs{$name};
-            } else {
-                put $dest, substr($line, $direct_idx, $direct_end - $direct_idx);
-            }
+            } elsif ($name eq "q") {
+                if (substr($match, 0, 1) eq "\$") {
+                    print $dest SmartyPants::SmartyPants($line);
+                    last;
+                } else {
+                    my $str = "";
 
-            $line = substr $line, $direct_end;
+                    open my $str_io, ">", \$str;
+                    $line = parse_file $iter, $str_io, $subs, "{endq}", $line;
+                    close $str_io;
+
+                    print $dest SmartyPants::SmartyPants(decode("UTF-8",
+                                                                $str));
+                }
+            } elsif ($name eq "with") {
+                $line = parse_with $iter, $subs, $subs, $line;
+            } elsif (exists $$subs{$name}) {
+                print $dest $$subs{$name};
+            } else {
+                print $dest $match;
+            }
         }
 
         $line = &$iter;
     } while (defined $line);
 }
 
-sub parse_subs {
+sub parse_with {
     my ($iter, $incl_subs, $subs, $line) = @_;
     my $exit_pat = "{endwith}";
 
@@ -131,23 +132,26 @@ sub parse_subs {
             my $open_found = $after_colon =~ /^\s*$OPEN_PAT/;
             my $open_end = $+[0];
 
-            $$incl_subs{$key} = "";
+            open my $str_io, ">", \$$incl_subs{$key};
 
             # No braces, so we'll just take the rest of the line
             if (!$open_found) {
-                parse_file str_iter($after_colon), \$$incl_subs{$key}, $subs;
-                trim $$incl_subs{$key};
-                last;
+                parse_file str_iter($after_colon), $str_io, $subs;
+                $line = "";
             } else {
                 # Braces mean recursion
-                $line = parse_file $iter, \$$incl_subs{$key}, $subs, "$1}",
+                $line = parse_file $iter, $str_io, $subs, "$1}",
                                    substr($after_colon, $open_end);
-                trim $$incl_subs{$key};
             }
+
+            close $str_io;
+
+            $$incl_subs{$key} = decode("UTF-8", $$incl_subs{$key});
+            trim $$incl_subs{$key};
         }
 
         $line = &$iter;
     } while (defined $line);
 }
 
-parse_file sub { <> };
+parse_file sub { <> }, \*STDOUT;

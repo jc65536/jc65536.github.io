@@ -1,6 +1,6 @@
 {include page.html with}
-  title: {q} Jason Cheng's Favorite Personal.site {endq}
-  page_title: Welcome to Jason's Site
+  title: ${q} Jason Cheng's Favorite Personal.site
+  page_title: ${q} Welcome to Jason's Site
   content: {
     {q}
       <img src="res/profile-photo-med.jpg" id="profile-photo">
@@ -46,5 +46,9 @@
         <li>Discord: tumtumtree#5600</li>
       </ul>
     {endq}
+
+    <script>
+      if (Math.random() < 0.2) document.title = "Jason Can’t Fix Printers.site";
+    </script>
   }
 {endwith}

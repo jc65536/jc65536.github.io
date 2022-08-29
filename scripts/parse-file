@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+
+from io import StringIO, TextIOBase
+import re
+import sys
+from subprocess import PIPE, Popen
+import fileinput
+from typing import Iterator
+
+TEMPLATE_DIR = "templates"
+
+DIRECTIVE_PAT = re.compile("\$?{([^}]+)}")
+SHORT_DIR_PAT = re.compile("(^|\s)\\[a-z]\s")
+OPEN_PAT = re.compile("{(\**)")
+
+smarty_pants = Popen("scripts/SmartyPants.pl",
+                        stdin=PIPE,
+                        stdout=PIPE,
+                        text=True)
+
+def prepend_iter(rem: str, src: Iterator[str]):
+    if rem:
+        yield rem
+    for line in src:
+        yield line
+
+
+def smart_quotify(s: str = None):
+    if s is not None:
+        smarty_pants.stdin.write(s)
+    smarty_pants.stdin.write("\0")
+    smarty_pants.stdin.flush()
+    text = ""
+    for line in smarty_pants.stdout:
+        if line == "\0\n":
+            return text.strip()
+        text += line
+
+
+def parse_with(src: Iterator[str],
+               include_subs: dict[str, str],
+               subs: dict[str, str],
+               rem: str):
+
+    for line in prepend_iter(rem, src):
+        while line:
+            exit_idx = line.find("{endwith}")
+            exit_found = exit_idx != -1
+
+            colon_idx = line.find(":")
+            colon_found = colon_idx != -1
+
+            if not exit_found and not colon_found:
+                break
+
+            if exit_found and not (colon_found and colon_idx < exit_idx):
+                return line[exit_idx + len("{endwith}"):]
+
+            key = line[:colon_idx].strip()
+            after_colon = line[colon_idx + 1:].lstrip()
+            match = OPEN_PAT.match(after_colon)
+            str_buf = StringIO()
+
+            if match:
+                line = parse_file(src, str_buf, subs, match[1] + "}",
+                                  after_colon[match.end():])
+            else:
+                parse_file(iter([after_colon]), str_buf, subs)
+                line = ""   # Force exit
+
+            include_subs[key] = str_buf.getvalue().strip()
+
+
+def parse_file(src: Iterator[str],
+               dest: TextIOBase = sys.stdout,
+               subs: dict[str, str] = {},
+               exit_pat: str = None,
+               rem: str = None):
+
+    exit_found = False
+
+    for line in prepend_iter(rem, src):
+        # Breaking this while implies that we've consumed the whole line
+        while line:
+            if exit_pat:
+                exit_idx = line.find(exit_pat)
+                exit_found = exit_idx != -1
+
+            match = DIRECTIVE_PAT.search(line)
+
+            if not exit_found and not match:
+                dest.write(line)
+                break
+
+            # If there's no directive before exit
+            if exit_found and not (match and match.start() < exit_idx):
+                dest.write(line[:exit_idx])
+                dest.flush()
+                return line[exit_idx + len(exit_pat):]
+
+            if match.start() > 0:
+                dest.write(line[:match.start()])
+
+            line = line[match.end():]
+
+            match match[1].split():
+                case ["include", filename]:
+                    with open(f"{TEMPLATE_DIR}/{filename}") as file:
+                        parse_file(file, dest)
+
+                case ["include", filename, "with"]:
+                    include_subs: dict[str, str] = {}
+                    line = parse_with(src, include_subs, subs, line)
+
+                    with open(f"{TEMPLATE_DIR}/{filename}") as file:
+                        parse_file(file, dest, include_subs)
+
+                case ["q"]:
+                    if match[0][0] == "$":
+                        dest.write(smart_quotify(line))
+                        break
+                    else:
+                        line = parse_file(src, smarty_pants.stdin, subs, "{endq}", line)
+                        dest.write(smart_quotify())
+
+                case ["with"]:
+                    line = parse_with(src, subs, subs, line)
+
+                case [key] if key in subs:
+                    dest.write(subs[key])
+
+                case _:
+                    dest.write(match[0])
+
+    dest.flush()
+
+
+parse_file(fileinput.input())

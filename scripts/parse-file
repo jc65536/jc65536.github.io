@@ -3,38 +3,21 @@
 from io import StringIO, TextIOBase
 import re
 import sys
-from subprocess import PIPE, Popen
 import fileinput
 from typing import Iterator
+from smart_quotes import smart_quotify
 
 TEMPLATE_DIR = "templates"
 
-DIRECTIVE_PAT = re.compile("\$?{([^}]+)}")
-SHORT_DIR_PAT = re.compile("(^|\s)\\[a-z]\s")
-OPEN_PAT = re.compile("{(\**)")
+DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
+OPEN_PAT = re.compile(r"{(\**)")
 
-smarty_pants = Popen("scripts/SmartyPants.pl",
-                        stdin=PIPE,
-                        stdout=PIPE,
-                        text=True)
 
 def prepend_iter(rem: str, src: Iterator[str]):
     if rem:
         yield rem
     for line in src:
         yield line
-
-
-def smart_quotify(s: str = None):
-    if s is not None:
-        smarty_pants.stdin.write(s)
-    smarty_pants.stdin.write("\0")
-    smarty_pants.stdin.flush()
-    text = ""
-    for line in smarty_pants.stdout:
-        if line == "\0\n":
-            return text.strip()
-        text += line
 
 
 def parse_with(src: Iterator[str],
@@ -117,11 +100,12 @@ def parse_file(src: Iterator[str],
 
                 case ["q"]:
                     if match[0][0] == "$":
-                        dest.write(smart_quotify(line))
+                        smart_quotify(line, dest)
                         break
                     else:
-                        line = parse_file(src, smarty_pants.stdin, subs, "{endq}", line)
-                        dest.write(smart_quotify())
+                        str_buf = StringIO()
+                        line = parse_file(src, str_buf, subs, "{endq}", line)
+                        smart_quotify(str_buf.getvalue(), dest)
 
                 case ["with"]:
                     line = parse_with(src, subs, subs, line)

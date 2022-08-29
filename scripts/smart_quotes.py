@@ -1,3 +1,5 @@
+from curses.ascii import isspace
+from io import TextIOBase
 import re
 import sys
 
@@ -6,7 +8,7 @@ _depth = 6
 _TEXT = 0
 _TAG = 1
 
-_nested_tags = "|".join(["(?:<(?:[^<>]"] * _depth) + ")*>)" * _depth
+_nested_tags = "|".join([r"(?:<(?:[^<>]"] * _depth) + r")*>)" * _depth
 
 _tag_pat = re.compile(fr"""
     (?s: <! ( -- .*? -- \s* )+ > ) |  # comment
@@ -14,43 +16,50 @@ _tag_pat = re.compile(fr"""
     {_nested_tags}
 """, re.VERBOSE)
 
-_tags_to_skip = re.compile("<(/?)(?:pre|code|kbd|script|math)[\s>]")
+_tags_to_skip = re.compile(r"<(/?)(?:pre|code|kbd|script|math)[\s>]")
 
-_escapes = [(r"\\", "&#92;"),
+# These aren't regex. The keys are directly substituted.
+_escapes = ((r"\\", "&#92;"),
             (r"\"", "&#34;"),
             (r"\'", "&#39;"),
             (r"\.", "&#46;"),
-            (r"\-", "&#45;")]
+            (r"\-", "&#45;"))
 
-_replacements = [("---",   "\u2014"),
+_replacements = (("---",   "\u2014"),
                  ("--",    "\u2013"),
                  ("...",   "\u2026"),
-                 (". . .", "\u2026")]
+                 (". . .", "\u2026"))
 
-_first_squote_pat, _first_dquote_pat = [re.compile(fr"^{q}(?=[\W_]\B)")
-                                        for q in "\'\""]
+# Special case if the very first character is a quote followed by punctuation
+# at a non-word break. Close the quotes by brute force.
+_first_squote_pat = re.compile(r"^'(?=[\W_]\B)")
+_first_dquote_pat = re.compile(r'^"(?=[\W_]\B)')
 
+# Special case for double sets of quotes, e.g. "'Quoted'"
 _sdquotes_pat = re.compile("\"'(?=\\w)")
 _dsquotes_pat = re.compile("'\"(?=\\w)")
 
+# Special case for decade abbreviations (the '80s)
 _decade_pat = re.compile(r"'(?=\d{2}s)")
 
 _close_class = r"[^ \t\r\n[{(-]"
-_dec_dashes = "\u2013|\u2014"
+_dashes = "\u2013|\u2014"
 
+# Most opening single/double quotes
 _open_squote_pat, _open_dquote_pat = [re.compile(fr"""
     (
-        \s            |   # a whitespace char, or
-        &nbsp;        |   # a non-breaking space entity, or
-        --            |   # dashes, or
-        &[mn]dash;    |   # named dash entities
-        {_dec_dashes} |   # or decimal entities
-        &\#x201[34];      # or hex
+        \s          |   # a whitespace char, or
+        &nbsp;      |   # a non-breaking space entity, or
+        --          |   # dashes, or
+        &[mn]dash;  |   # named dash entities
+        {_dashes}   |   # or decimal entities
+        &\#x201[34];    # or hex
     )
-    {q}                   # the quote
-    (?=\w)                # followed by a word character
+    {q}                 # the quote
+    (?=\w)              # followed by a word character
 """, re.VERBOSE) for q in "\'\""]
 
+# Most closing single quotes
 _close_squote_pat = re.compile(fr"""
     ({_close_class})?
     '
@@ -61,27 +70,34 @@ _close_squote_pat = re.compile(fr"""
                     # "<i>Custer</i>'s Last Stand."
 """, re.VERBOSE | re.IGNORECASE)
 
+# Most closing double quotes
 _close_dquote_pat = re.compile(fr"""
     ({_close_class})?
     "
     (?(1)|(?=\s))   # If $1 captured, then do nothing;
-                       # if not, then make sure the next char is whitespace.
+                    # if not, then make sure the next char is whitespace.
 """, re.VERBOSE)
 
-def smart_quotes(text: str):
-    result = ""
-    in_pre = False
-    prev_token_last_char = ""
+
+def smart_quotify(text: str, dest: TextIOBase):
+    in_pre = False  # Keep track of when we're inside <pre> or <code> tags.
+
+    prev_token_last = ""    # This is a cheat, used to get some context
+                            # for one-character tokens that consist of 
+                            # just a quote char. What we do is remember
+                            # the last character of the previous text
+                            # token, to use as context to curl single-
+                            # character quote tokens correctly.
 
     for token in _tokenize(text):
         if token[0] == _TAG:
-            result += token[1]
+            dest.write(token[1])
             match = _tags_to_skip.match(token[1])
             if match:
                 in_pre = match[1] != "/"
         else:
             t = token[1]
-            last_char = t[-1:]
+            last = t[-1:]
 
             if not in_pre:
                 for esc, ent in _escapes:
@@ -91,12 +107,12 @@ def smart_quotes(text: str):
                     t = t.replace(pat, char)
 
                 if t == "'":
-                    if not prev_token_last_char.isspace() and prev_token_last_char:
+                    if not prev_token_last.isspace() and prev_token_last:
                         t = "\u2019"
                     else:
                         t = "\u2018"
                 elif t == '"':
-                    if not prev_token_last_char.isspace() and prev_token_last_char:
+                    if not prev_token_last.isspace() and prev_token_last:
                         t = "\u201d"
                     else:
                         t = "\u201c"
@@ -114,24 +130,20 @@ def smart_quotes(text: str):
                     t = t.replace('"', "\u201c")
 
                 for esc, ent in _escapes:
-                    t = t.replace(ent, esc[1:])
+                    t = t.replace(ent, esc[1])
 
-            prev_token_last_char = last_char
-            result += t
+            prev_token_last = last
+            dest.write(t)
     
-    return result
+    dest.flush()
 
 
 def _tokenize(text: str):
-    pos = 0
-
-    while match := _tag_pat.search(text, pos):
-        if pos < match.start():
-            yield (_TEXT, text[pos:match.start()])
+    while match := _tag_pat.search(text):
+        if match.start() > 0:
+            yield (_TEXT, text[:match.start()])
         yield (_TAG, match[0])
-        pos = match.end()
+        text = text[match.end():]
 
-    if pos < len(text):
-        yield (_TEXT, text[pos:])
-
-print(smart_quotes(sys.stdin.read()), end="")
+    if text:
+        yield (_TEXT, text)

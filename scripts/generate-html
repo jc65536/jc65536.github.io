@@ -1,19 +1,21 @@
 #!/bin/bash
 
-src=html
-dest=output
+# Configurable variables
+export HTML_SRC=html
+export HTML_ROOT=output
+export TEMPLATE_DIR=templates
 
 cd $(git rev-parse --show-toplevel)
 
-rm -r $dest
+rm -r $HTML_ROOT
 
-for file in $(find $src -type f); do
-    output=${file/#$src/$dest}
-    mkdir -p $(dirname $output)
+for file in $(find $HTML_SRC -type f); do
+    out_file=${file/#$HTML_SRC/$HTML_ROOT}
+    mkdir -p $(dirname $out_file)
     echo $file
-    scripts/parse-file $file > $output
+    scripts/parse-file $file > $out_file
 done
 
-for dir in res scripts styles demos; do
-    ln -s ../$dir $dest/$dir
+for dir in res scripts styles; do
+    ln -s $PWD/$dir $HTML_ROOT/$dir
 done

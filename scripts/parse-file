@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 
-from io import StringIO, TextIOBase
+import os
 import re
 import sys
-import fileinput
+import subprocess
+
+from datetime import date
 from typing import Iterator
+from io import StringIO, TextIOBase
 from smart_quotes import smart_quotify
 
-TEMPLATE_DIR = "templates"
+# Do not configure these. Configure the exports in generate-html instead.
+
+TEMPLATE_DIR = os.environ["TEMPLATE_DIR"]
+
+RESERVED_SUBS = {
+    "_ROOT": os.path.abspath(os.environ["HTML_ROOT"])
+}
 
 DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
 OPEN_PAT = re.compile(r"{(\**)")
+
+src_filename = sys.argv[1]
 
 
 def prepend_iter(rem: str, src: Iterator[str]):
@@ -112,8 +123,27 @@ def parse_file(src: Iterator[str],
                 case ["with"]:
                     line = parse_with(src, subs, subs, line)
 
+                case ["date", *rest]:
+                    git_output = subprocess.run(("git", "log", "-1",
+                                                 "--format=%cs", src_filename),
+                                                capture_output=True,
+                                                text=True).stdout.rstrip()
+
+                    if len(rest) == 0:
+                        # Default format is YY-MM-DD
+                        dest.write(git_output)
+                    else:
+                        delim = rest[0][0]
+                        format = match[1].split(maxsplit=1)[1] \
+                                         .split(delim)[1]
+                        dest.write(date.fromisoformat(git_output)
+                                       .strftime(format))
+
                 case [key] if key in subs:
                     dest.write(subs[key])
+
+                case [key] if key in RESERVED_SUBS:
+                    dest.write(RESERVED_SUBS[key])
 
                 case _:
                     dest.write(match[0])
@@ -121,4 +151,5 @@ def parse_file(src: Iterator[str],
     dest.flush()
 
 
-parse_file(fileinput.input())
+with open(src_filename) as file:
+    parse_file(file)

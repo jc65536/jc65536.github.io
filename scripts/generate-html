@@ -1,21 +1,27 @@
 #!/bin/bash
 
 # Configurable variables
-export HTML_SRC=html
-export HTML_ROOT=output
+src=html
+dest=output
 export TEMPLATE_DIR=templates
 
 cd $(git rev-parse --show-toplevel)
 
-rm -r $HTML_ROOT
+if [[ -e .droplet ]]; then
+    export HTML_ROOT=""
+else
+    export HTML_ROOT=$(realpath $dest)
+fi
 
-for file in $(find $HTML_SRC -type f); do
-    out_file=${file/#$HTML_SRC/$HTML_ROOT}
+rm -r $dest
+
+for file in $(find $src -type f); do
+    out_file=${file/#$src/$dest}
     mkdir -p $(dirname $out_file)
     echo $file
     scripts/parse-file $file > $out_file
 done
 
 for dir in res scripts styles; do
-    ln -s $PWD/$dir $HTML_ROOT/$dir
+    ln -s $PWD/$dir $dest/$dir
 done

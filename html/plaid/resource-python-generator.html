@@ -2,11 +2,34 @@
   doc_title: PLAID
   title: Resource Management in Python Generators
   content: {
-    Published: August 30, 2022
+    <p>Published: August 30, 2022</p>
+
+    {with}
+      generators: https://wiki.python.org/moin/Generators
+    {endwith}
 
     {q}
-      Wow, I've never thought I'd have to deal with resource management in
-      Python of all languages.
+      <p>
+        Wow, I've never thought I'd have to deal with resource management in
+        <em>Python</em> of all languages. But I did, while writing the HTML
+        preprocessor for this website a couple days ago. A bit of context about
+        how my preprocessor works: As it's parsing a file, it generates
+        processed text (duh). Most of the time, it directly outputs this text
+        to <code>stdout</code>. However, sometimes the preprocessor enters a
+        mode in which the text is not immediately used for output, but will be
+        substituted in at a later point. In this mode, it needs to save the
+        processed text in-memory. So how can my <code>parse</code> function
+        distinguish these two modes of output?
+      </p>
+
+      <p>
+        In my first iterations, I made heavy use of
+        <a href="{generators}">generators.</a> The idea was that whenever
+        <code>parse</code> encounters the start of a recursive block, it would
+        recursively call itself, creating a subgenerator. If we needed to save
+        the recursive block in a string, we would consume the generator using
+        <code>"".join()</code>.
+      </p>
     {endq}
   }
 {endwith}

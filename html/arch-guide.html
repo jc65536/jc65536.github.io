@@ -4,9 +4,11 @@
   content: {
     {q}
       <h2>Installation</h2>
+
       {with}
         inst_guide: https://wiki.archlinux.org/title/Installation_guide
       {endwith}
+
       <p>
         When it comes to a comprehensive installation guide, nothing beats the
         <a href="{inst_guide}">official installation guide.</a> However,
@@ -15,9 +17,16 @@
         looking for. This guide goes over some specific things I learned during
         my several installations and their advantages/disadvantages.
       </p>
+
       <h3>Partitioning</h3>
+      
+      {with}
+        add_swap: https://haydenjames.io/linux-performance-almost-always-add-swap-space/
+      {endwith}
+
       <p>
         My current partition layout on a 256 GB SSD is as follows:
+
         <pre>
 +-----------------------+ +-------------------------------+---------------+
 | EFI System Partition  | | Logical volume 1              | Empty space   |
@@ -39,31 +48,33 @@
 |                       | |                                               |
 +-----------------------+ +-----------------------------------------------+
         </pre>
+
         I've forgone the usual swap partition because my laptop has 32 GiB of
         RAM, which has been more than enough to handle my daily usage. I don't
         need hibernation either, so this works fine for me. However, after
-        reading
-        <a href="https://haydenjames.io/linux-performance-almost-always-add-swap-space/">
-          this article,
-        </a>
-        I realized that reserving around 4 GiB of swap space (in exchange for
-        some of the snapshot space, which I never fully utilize anyways), could
-        result in cache performance benefits and provide some leeway before
-        processes get shut down, should I ever run out of memory for any
-        reason. When I upgrade my laptop and get a bigger SSD, I will
-        definitely apply these changes.
+        reading <a href="{add_swap}">this article,</a> I realized that
+        reserving around 4 GiB of swap space (in exchange for some of the
+        snapshot space, which I never fully utilize anyways), could result in
+        cache performance benefits and provide some leeway before processes get
+        shut down, should I ever run out of memory for any reason. When I
+        upgrade my laptop and get a bigger SSD, I will definitely apply these
+        changes.
       </p>
+
       <h3>Encryption</h3>
+
+      {with}
+        lvm_luks: https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
+      {endwith}
+      
       <p>
         As you can see from the diagram under "Partitioning," I have something
         called a "LUKS2 encrypted partition." I highly recommend encrypting
         your hard drive and setting up LVM on top of it. This method is known
-        as
-        <a href="https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS">
-          LVM on LUKS,
-        </a>
-        and it's probably the most sensible approach for a personal laptop with a single drive. You'll
-        unlock your drive once on boot, and after that you'll have normal access to your entire drive.
+        as <a href="{lvm_luks}">LVM on LUKS,</a> and it's probably the most
+        sensible approach for a personal laptop with a single drive. You'll
+        unlock your drive once on boot, and after that you'll have normal
+        access to your entire drive.
       </p>
     {endq}
   }

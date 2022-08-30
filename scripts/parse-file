@@ -14,14 +14,14 @@ from smart_quotes import smart_quotify
 
 TEMPLATE_DIR = os.environ["TEMPLATE_DIR"]
 
+SRC_FILENAME = sys.argv[1]
+
 RESERVED_SUBS = {
-    "_ROOT": os.path.abspath(os.environ["HTML_ROOT"])
+    "_ROOT": os.environ["HTML_ROOT"]
 }
 
 DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
 OPEN_PAT = re.compile(r"{(\**)")
-
-src_filename = sys.argv[1]
 
 
 def prepend_iter(rem: str, src: Iterator[str]):
@@ -66,7 +66,7 @@ def parse_with(src: Iterator[str],
 
 
 def parse_file(src: Iterator[str],
-               dest: TextIOBase = sys.stdout,
+               dest: TextIOBase,
                subs: dict[str, str] = {},
                exit_pat: str = None,
                rem: str = None):
@@ -125,7 +125,7 @@ def parse_file(src: Iterator[str],
 
                 case ["date", *rest]:
                     git_output = subprocess.run(("git", "log", "-1",
-                                                 "--format=%cs", src_filename),
+                                                 "--format=%cs", SRC_FILENAME),
                                                 capture_output=True,
                                                 text=True).stdout.rstrip()
 
@@ -151,5 +151,5 @@ def parse_file(src: Iterator[str],
     dest.flush()
 
 
-with open(src_filename) as file:
-    parse_file(file)
+with open(SRC_FILENAME) as file:
+    parse_file(file, sys.stdout)

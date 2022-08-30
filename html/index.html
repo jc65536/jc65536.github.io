@@ -3,46 +3,47 @@
   title: ${q} Welcome to Jason's Site
   content: {
     {q}
-      <img src="res/profile-photo-med.jpg" id="profile-photo">
+      <img src="{_ROOT}/res/profile-photo-med.jpg" id="profile-photo">
 
       <p>
         Hi, my name is Pinran Cheng（程品然）, but I go by Jason. Welcome to my
         personal website!
       </p>
 
+      {with}
+        ucla: https://www.ucla.edu/
+        personal_email: jasoncheng224@gmail.com
+        school_email: jasonc224@ucla.edu
+        linkedin: https://www.linkedin.com/in/pinran-cheng-7312341a0/
+      {endwith}
+
       <p>
-        I'm currently studying Computer Science at
-        <a href="https://www.ucla.edu/">UCLA</a>. From instruction set
-        architecture to web security, computing is full of interesting topics
-        that I want to explore. I'm also passionate about the social side of
-        software---specifically, free and open source software and privacy. As
-        such, I've yet to decide a field to specialize in. But if you're an
-        employer looking for interns, you can help me discover what I want to
-        do! ;)
+        I'm currently studying Computer Science at <a href="{ucla}">UCLA</a>.
+        From instruction set architecture to web security, computing is full of
+        interesting topics that I want to explore. I'm also passionate about
+        the social side of software---specifically, free and open source
+        software and privacy. As such, I've yet to decide a field to specialize
+        in. But if you're an employer looking for interns, you can help me
+        discover what I want to do! ;)
       </p>
 
-      <p><a href="res/resume.pdf">My resume</a></p>
+      <p><a href="{_ROOT}/res/resume.pdf">My resume</a></p>
       <p><a href="https://github.com/jc65536">GitHub profile</a></p>
 
       <p>My contacts</p>
       <ul>
         <li>
-          Email:
-          <a href="mailto:jasoncheng224@gmail.com">jasoncheng224@gmail.com</a>
+          Email: <a href="mailto:{personal_email}">{personal_email}</a>
         </li>
         <li>
           School email (UCLA-related correspondence only):
-          <a href="mailto:jasonc224@ucla.edu">jasonc224@ucla.edu</a>
+          <a href="mailto:{school_email}">{school_email}</a>
         </li>
       </ul>
 
       <p>My socials</p>
       <ul>
-        <li>
-          <a href="https://www.linkedin.com/in/pinran-cheng-7312341a0/">
-            LinkedIn profile
-          </a>
-        </li>
+        <li><a href="{linkedin}">LinkedIn profile</a></li>
         <li>Discord: tumtumtree#5600</li>
       </ul>
     {endq}

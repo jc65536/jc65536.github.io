@@ -1,18 +1,19 @@
 #!/bin/bash
 
-src=html
-dest=output
+set -e
 
 cd $(git rev-parse --show-toplevel)
+. .env
 
 rm -r $dest
 
 for file in $(find $src -type f); do
-    output=${file/$src/$dest}
-    mkdir -p $(dirname $output)
-    scripts/parse-file $file | scripts/SmartyPants.pl > $output
+    out_file=${file/#$src/$dest}
+    mkdir -p $(dirname $out_file)
+    echo $file
+    scripts/parse-file $file > $out_file
 done
 
-for dir in res scripts styles demos; do
-    ln -s ../$dir $dest/$dir
+for dir in res styles; do
+    ln -s $PWD/$dir $dest/$dir
 done

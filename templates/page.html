@@ -3,17 +3,17 @@
 
 <head>
   <meta charset="utf-8">
-  <title>{title}</title>
-  <link rel="stylesheet" href="styles/style.css" />
+  <title>{doc_title}</title>
+  <link rel="stylesheet" href="/styles/style.css" />
 </head>
 
 <body>
   {include nav.html}
-  <div class="content">
-    <h1>{page_title}</h1>
+  <main class="center">
+    <h1>{title}</h1>
     {content}
-  </div>
-  <script src="scripts/main.js"></script>
+  </main>
+  <div id="spacer"></div>
 </body>
 
 </html>

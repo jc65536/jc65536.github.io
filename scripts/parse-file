@@ -1,90 +1,159 @@
 #!/usr/bin/env python3
 
+import os
 import re
 import sys
-from typing import Iterable
-from enum import Enum, auto
+import subprocess
 
-directive_pat = re.compile("{([^}]+)}")
-text_open_pat = re.compile("{(\**)")
+from datetime import date
+from typing import Iterator
+from io import StringIO, TextIOBase
+from smart_quotes import smart_quotify
+
+# Do not configure these. Configure the exports in generate-html instead.
+
+TEMPLATE_DIR = os.environ["TEMPLATE_DIR"]
+
+SRC_FILENAME = sys.argv[1]
+
+DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
+OPEN_PAT = re.compile(r"{(\**)")
 
 
-class State(Enum):
-    DEFAULT = auto()
-    INCLUDE_WITH = auto()
-    TEXT = auto()
+def prepend_iter(rem: str, src: Iterator[str]):
+    if rem:
+        yield rem
+    for line in src:
+        yield line
 
 
-def strip_list(lines: Iterable[str]):
-    return "".join(lines).strip().splitlines(keepends=True)
+def parse_with(src: Iterator[str],
+               include_subs: dict[str, str],
+               subs: dict[str, str],
+               rem: str):
+
+    for line in prepend_iter(rem, src):
+        while line:
+            exit_idx = line.find("{endwith}")
+            exit_found = exit_idx != -1
+
+            colon_idx = line.find(":")
+            colon_found = colon_idx != -1
+
+            if not exit_found and not colon_found:
+                break
+
+            if exit_found and not (colon_found and colon_idx < exit_idx):
+                return line[exit_idx + len("{endwith}"):]
+
+            key = line[:colon_idx].strip()
+            after_colon = line[colon_idx + 1:].lstrip()
+            match = OPEN_PAT.match(after_colon)
+            str_buf = StringIO()
+
+            if match:
+                line = parse_file(src, str_buf, subs, match[1] + "}",
+                                  after_colon[match.end():])
+            else:
+                parse_file(iter([after_colon]), str_buf, subs)
+                line = ""   # Force break
+
+            include_subs[key] = str_buf.getvalue().strip()
 
 
-def parse(file: Iterable[str], subs: dict[str, list[str]] = {}):
-    state = State.DEFAULT
-    include_subs: dict[str, list[str]] = {}
+def parse_file(src: Iterator[str],
+               dest: TextIOBase,
+               subs: dict[str, str] = {},
+               exit_pat: str = None,
+               rem: str = None):
 
-    for line in file:
+    exit_found = False
+
+    for line in prepend_iter(rem, src):
         # Breaking this while implies that we've consumed the whole line
         while line:
-            match state:
-                case State.INCLUDE_WITH:
-                    if (match := directive_pat.search(line)) and match.group(1) == "endwith":
-                        after_end = line[match.end():]
-                        # We'll still parse the content until {endwith}
-                        line = line[:match.start()]
-                        state = State.DEFAULT
+            if exit_pat:
+                exit_idx = line.find(exit_pat)
+                exit_found = exit_idx != -1
 
-                    if len(segments := line.split(":", 1)) > 1:
-                        key = segments[0].strip()
-                        line = segments[1].lstrip()
-                        if match := text_open_pat.match(line):
-                            text_close_pat = match.group(1) + "}"
-                            include_subs[key] = []
-                            line = line[match.end():]
-                            state = State.TEXT
-                            continue
-                        else:   # No braces => we'll just take the rest of the line
-                            include_subs[key] = strip_list(
-                                parse([line.rstrip()], subs))
+            match = DIRECTIVE_PAT.search(line)
 
-                    if state is not State.INCLUDE_WITH:
-                        with open(f"templates/{filename}") as include_file:
-                            yield from parse(include_file, include_subs)
-                        include_subs.clear()
-                        line = after_end
+            if not exit_found and not match:
+                dest.write(line)
+                break
+
+            # If there's no directive before exit
+            if exit_found and not (match and match.start() < exit_idx):
+                dest.write(line[:exit_idx])
+                dest.flush()
+                return line[exit_idx + len(exit_pat):]
+
+            if match.start() > 0:
+                dest.write(line[:match.start()])
+
+            line = line[match.end():]
+
+            match match[1].split():
+                case ["include", filename]:
+                    with open(f"{TEMPLATE_DIR}/{filename}") as file:
+                        parse_file(file, dest)
+
+                case ["include", filename, "with"]:
+                    include_subs: dict[str, str] = {}
+                    line = parse_with(src, include_subs, subs, line)
+
+                    with open(f"{TEMPLATE_DIR}/{filename}") as file:
+                        parse_file(file, dest, include_subs)
+
+                case ["q"]:
+                    str_buf = StringIO()
+
+                    if match[0][0] == "$":
+                        parse_file(iter([line]), str_buf, subs)
+                        line = ""   # Force break
                     else:
-                        break
+                        line = parse_file(src, str_buf, subs, "{endq}", line)
 
-                case State.TEXT:
-                    if len(segments := line.split(text_close_pat, 1)) > 1:
-                        include_subs[key].append(segments[0].strip())
-                        include_subs[key] = strip_list(
-                            parse(include_subs[key], subs))
-                        line = segments[1]
-                        state = State.INCLUDE_WITH
-                    else:
-                        include_subs[key].append(line.strip() + "\n")
-                        break
+                    smart_quotify(str_buf.getvalue(), dest)
 
-                case State.DEFAULT:
-                    if match := directive_pat.search(line):
-                        yield line[:match.start()]
-                        match match.group(1).split():
-                            case ["include", filename]:
-                                with open(f"templates/{filename}") as include_file:
-                                    yield from parse(include_file)
-                            case ["include", filename, "with"]:
-                                state = State.INCLUDE_WITH
-                            case [key] if key in subs:
-                                yield from subs[key]
-                            case _:
-                                yield match.group(0)
-                        line = line[match.end():]
-                    else:
-                        yield line
-                        break
+                case ["with"]:
+                    line = parse_with(src, subs, subs, line)
+
+                case ["lastmod"]:
+                    dest.write(subprocess.run(("git", "log", "-1",
+                                               "--format=%cs", SRC_FILENAME),
+                                              capture_output=True,
+                                              text=True).stdout.rstrip())
+
+                case ["fdate", *rest]:
+                    delim = rest[0][0]
+                    format = match[1].split(maxsplit=1)[1].split(delim)[1]
+                    str_buf = StringIO()
+                    line = parse_file(src, str_buf, subs, "{endfdate}", line)
+                    dest.write(date.fromisoformat(str_buf.getvalue().strip())
+                                   .strftime(format))
+
+                case ["pre", tag, *rest]:
+                    str_buf = StringIO()
+                    line = parse_file(src, str_buf, subs, "{endpre}", line)
+                    inner = str_buf.getvalue().strip()
+
+                    if not (rest and rest[0] == "noencode"):
+                        inner = (inner.replace("&", "&amp;")
+                                      .replace("<", "&lt;")
+                                      .replace(">", "&gt;"))
+
+                    dest.write(f"<pre><{tag}>{inner}</{tag}></pre>")
+
+                case [key] if key in subs or key[-1] == "?":
+                    if key in subs:
+                        dest.write(subs[key])
+
+                case _:
+                    dest.write(match[0])
+
+    dest.flush()
 
 
-with open(sys.argv[1]) as file:
-    for line in parse(file):
-        print(line, end="")
+with open(SRC_FILENAME) as file:
+    parse_file(file, sys.stdout)

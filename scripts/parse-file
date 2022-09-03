@@ -16,11 +16,7 @@ TEMPLATE_DIR = os.environ["TEMPLATE_DIR"]
 
 SRC_FILENAME = sys.argv[1]
 
-RESERVED_SUBS = {
-    "_ROOT": os.environ["HTML_ROOT"]
-}
-
-DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
+DIRECTIVE_PAT = re.compile(r"[$\\]?{([^}]+)}")
 OPEN_PAT = re.compile(r"{(\**)")
 
 
@@ -97,6 +93,10 @@ def parse_file(src: Iterator[str],
 
             line = line[match.end():]
 
+            if match[0][0] == "\\":
+                dest.write(match[0][1:])
+                continue
+
             match match[1].split():
                 case ["include", filename]:
                     with open(f"{TEMPLATE_DIR}/{filename}") as file:
@@ -141,9 +141,6 @@ def parse_file(src: Iterator[str],
 
                 case [key] if key in subs:
                     dest.write(subs[key])
-
-                case [key] if key in RESERVED_SUBS:
-                    dest.write(RESERVED_SUBS[key])
 
                 case _:
                     dest.write(match[0])

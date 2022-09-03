@@ -26,8 +26,9 @@
 
       <p>
         My current partition layout on a 256 GB SSD is as follows:
+      </p>
 
-        <pre>
+<pre>
 +-----------------------+ +-------------------------------+---------------+
 | EFI System Partition  | | Logical volume 1              | Empty space   |
 | /dev/nvme0n1p1        | | /dev/vg1/root                 | for snapshots |
@@ -47,8 +48,9 @@
 |                       | | PV: /dev/mapper/cryptlvm                      |
 |                       | |                                               |
 +-----------------------+ +-----------------------------------------------+
-        </pre>
+</pre>
 
+      <p>
         I've forgone the usual swap partition because my laptop has 32 GiB of
         RAM, which has been more than enough to handle my daily usage. I don't
         need hibernation either, so this works fine for me. However, after
@@ -57,8 +59,8 @@
         snapshot space, which I never fully utilize anyways), could result in
         cache performance benefits and provide some leeway before processes get
         shut down, should I ever run out of memory for any reason. When I
-        upgrade my laptop and get a bigger SSD, I will definitely apply these
-        changes.
+        upgrade my laptop and get a bigger SSD, I will definitely add some
+        swap.
       </p>
 
       <h3>Encryption</h3>

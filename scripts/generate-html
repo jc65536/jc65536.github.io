@@ -5,7 +5,7 @@ set -e
 cd $(git rev-parse --show-toplevel)
 . .env
 
-rm -r $dest/*
+rm -r $dest
 
 for file in $(find $src -type f); do
     out_file=${file/#$src/$dest}
@@ -15,5 +15,5 @@ for file in $(find $src -type f); do
 done
 
 for dir in res styles; do
-    cp -r $PWD/$dir $dest/$dir
+    ln -s $PWD/$dir $dest/$dir
 done

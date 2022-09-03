@@ -16,7 +16,7 @@ TEMPLATE_DIR = os.environ["TEMPLATE_DIR"]
 
 SRC_FILENAME = sys.argv[1]
 
-DIRECTIVE_PAT = re.compile(r"[$\\]?{([^}]+)}")
+DIRECTIVE_PAT = re.compile(r"\$?{([^}]+)}")
 OPEN_PAT = re.compile(r"{(\**)")
 
 
@@ -93,10 +93,6 @@ def parse_file(src: Iterator[str],
 
             line = line[match.end():]
 
-            if match[0][0] == "\\":
-                dest.write(match[0][1:])
-                continue
-
             match match[1].split():
                 case ["include", filename]:
                     with open(f"{TEMPLATE_DIR}/{filename}") as file:
@@ -123,24 +119,35 @@ def parse_file(src: Iterator[str],
                 case ["with"]:
                     line = parse_with(src, subs, subs, line)
 
-                case ["date", *rest]:
-                    git_output = subprocess.run(("git", "log", "-1",
-                                                 "--format=%cs", SRC_FILENAME),
-                                                capture_output=True,
-                                                text=True).stdout.rstrip()
+                case ["lastmod"]:
+                    dest.write(subprocess.run(("git", "log", "-1",
+                                               "--format=%cs", SRC_FILENAME),
+                                              capture_output=True,
+                                              text=True).stdout.rstrip())
 
-                    if len(rest) == 0:
-                        # Default format is YY-MM-DD
-                        dest.write(git_output)
-                    else:
-                        delim = rest[0][0]
-                        format = match[1].split(maxsplit=1)[1] \
-                                         .split(delim)[1]
-                        dest.write(date.fromisoformat(git_output)
-                                       .strftime(format))
+                case ["fdate", *rest]:
+                    delim = rest[0][0]
+                    format = match[1].split(maxsplit=1)[1].split(delim)[1]
+                    str_buf = StringIO()
+                    line = parse_file(src, str_buf, subs, "{endfdate}", line)
+                    dest.write(date.fromisoformat(str_buf.getvalue().strip())
+                                   .strftime(format))
 
-                case [key] if key in subs:
-                    dest.write(subs[key])
+                case ["pre", tag, *rest]:
+                    str_buf = StringIO()
+                    line = parse_file(src, str_buf, subs, "{endpre}", line)
+                    inner = str_buf.getvalue().strip()
+
+                    if not (rest and rest[0] == "noencode"):
+                        inner = (inner.replace("&", "&amp;")
+                                      .replace("<", "&lt;")
+                                      .replace(">", "&gt;"))
+
+                    dest.write(f"<pre><{tag}>{inner}</{tag}></pre>")
+
+                case [key] if key in subs or key[-1] == "?":
+                    if key in subs:
+                        dest.write(subs[key])
 
                 case _:
                     dest.write(match[0])

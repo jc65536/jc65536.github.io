@@ -4,6 +4,10 @@
     margin-right: auto;
 }
 
+main {
+    margin-bottom: 10vh;
+}
+
 #profile-photo {
     width: 8rem;
     float: right;
@@ -16,18 +20,4 @@
 .project-screenshot {
     max-width: 100%;
     max-height: 40rem;
-}
-
-html {
-    background-image: url("/res/plaid3.png");
-    background-size: 16rem;
-}
-
-.center {
-    background-color: white;
-    padding: 0.5rem 1rem;
-}
-
-main {
-    margin-top: 1rem;
 }

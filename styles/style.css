@@ -9,7 +9,9 @@ main {
 }
 
 #profile-photo {
-    width: 8rem;
+    max-width: 40%;
+    width: 12rem;
+    margin-left: 1rem;
     float: right;
 }
 

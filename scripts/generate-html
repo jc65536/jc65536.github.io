@@ -13,8 +13,15 @@ rm -r $dest
 for file in $(find $src -type f); do
     out_file=${file/#$src/$dest}
     mkdir -p $(dirname $out_file)
-    echo $file
-    scripts/parse-file $file > $out_file
+
+    if [[ $file =~ .*\.tmp$ ]]; then
+        out_file=${out_file%.tmp}
+        echo "$file -> $out_file"
+        scripts/parse-file $file > $out_file
+    else
+        echo "$file -> $out_file"
+        ln $file $out_file
+    fi
 done
 
 for dir in res styles; do

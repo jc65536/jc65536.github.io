@@ -1,5 +1,5 @@
 {include page.html with}
-  doc_title: pcheng.cc | Demos
+  doc_title: Demos
   title: Demos
   content: {
     <p>

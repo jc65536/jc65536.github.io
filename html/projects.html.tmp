@@ -1,5 +1,5 @@
 {include page.html with}
-  doc_title: pcheng.cc | Projects
+  doc_title: Projects
   title: My Projects
   content: {
     {q}

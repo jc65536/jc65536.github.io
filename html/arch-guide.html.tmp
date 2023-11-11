@@ -1,5 +1,5 @@
 {include page.html with}
-  doc_title: pcheng.cc | Arch Linux
+  doc_title: Arch Linux
   title: Arch Linux Guide
   content: {
     {q}

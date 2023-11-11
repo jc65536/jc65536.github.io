@@ -1,5 +1,5 @@
 {include page.html with}
-  doc_title: pcheng.cc | Blog
+  doc_title: Blog
   title: My Blog
   content: {
     <ul>

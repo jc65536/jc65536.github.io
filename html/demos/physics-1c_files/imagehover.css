@@ -1,0 +1,34 @@
+div.imagehover
+{
+	height: 30px;
+	width: 	30px;
+	vertical-align:top;
+}
+div.imagehover img
+{
+	width: 100%;
+	height:100%;
+	top:0;
+	left:0;
+}
+
+div.imagehoversmall
+{
+	height: 16px;
+	width: 	16px;
+	vertical-align:top;
+	margin: auto;
+}
+div.imagehoversmall img
+{
+	width: 100%;
+	height:100%;
+	top:0;
+	left:0;
+}
+.preview
+{
+	position: absolute;
+	width: 120px;
+	height: 120px;
+}

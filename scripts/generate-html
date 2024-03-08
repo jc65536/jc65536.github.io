@@ -14,8 +14,8 @@ for file in $(find $src -type f); do
     out_file=${file/#$src/$dest}
     mkdir -p $(dirname $out_file)
 
-    if [[ $file =~ .*\.tmp$ ]]; then
-        out_file=${out_file%.tmp}
+    if [[ $file =~ .*\.temp$ ]]; then
+        out_file=${out_file%.temp}.html
         echo "$file -> $out_file"
         scripts/parse-file $file > $out_file
     else
